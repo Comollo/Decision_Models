@@ -1,5 +1,5 @@
 #Caricamento Dataset 
-setwd("C:\\Users\\Donatella\\Desktop\\bicocca\\decision models\\project\\progetto_finale")
+#setwd("C:\\Users\\Donatella\\Desktop\\bicocca\\decision models\\project\\progetto_finale")
 library(readxl)
 d = read_excel("Lucky Duck Entertainment revenue 2013.xls", na = c(".", "NA", "NaN"))
 
