@@ -15,11 +15,11 @@ summary(d$Month) #circa 12 mesi
 # CATEGORIZATION ##
 ###################
 
-#Per trovare il numero massimo di macchine allocabili in ciascun casinò:
-#1) raggruppiamo per casinò -> creo 2 dataset apposta;
+#Per trovare il numero massimo di macchine allocabili in ciascun casinÃ²:
+#1) raggruppiamo per casinÃ² -> creo 2 dataset apposta;
 #2) raggruppo per mese e sommo il numero di macchine;
-#3) considero il numero più alto: se quel mese ci sono state così tante macchine allora possono starci sempre
-#il punto 3 che avevamo individuato al primo incontro forse ora è inutile! Vogliamo un altro tipo di
+#3) considero il numero piÃ¹ alto: se quel mese ci sono state cosÃ¬ tante macchine allora possono starci sempre
+#il punto 3 che avevamo individuato al primo incontro forse ora Ã¨ inutile! Vogliamo un altro tipo di
 #categorizzazione
 
 d %>%
@@ -90,3 +90,5 @@ sept_lib %>%
 
 #giocate per macchina potrebbe essere il coin in? -> da MAX
 #profitto per macchina -> da MAX
+
+#prova_euge
