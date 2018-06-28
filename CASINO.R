@@ -198,4 +198,3 @@ Sistemato2 = d_libra %>%
 #spostamento tra le sezioni. Problema: perdiamo la serie storica perchè se è possibile che alcune
 #categorie di macchine, che presentano più di una macchina (num_macchine > 1) vengano divise tra 2
 #o più sezioni in uno stesso mese. Esempio lampante è la categoria 0.02 reel [vedete].
-
