@@ -1,5 +1,9 @@
-#Caricamento Dataset 
-setwd("C:\\Users\\Donatella\\Desktop\\bicocca\\decision models\\project\\progetto_finale")
+library(rstudioapi)
+# Getting the path of your current open file
+current_path = rstudioapi::getActiveDocumentContext()$path 
+setwd(dirname(current_path ))
+print(getwd())
+
 library(readxl)
 d = read_excel("Lucky Duck Entertainment revenue 2013.xls", na = c(".", "NA", "NaN"))
 
