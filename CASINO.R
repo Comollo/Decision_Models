@@ -44,10 +44,13 @@ d_libra %>%
   summarise(n_mac = sum(NoMachines))#macchine totali Libra per mese = OK!
 
 #numero di "macchine" che posso avere
-d %>%
-  group_by(Denomination, MachineName, MachineType, Model) %>%
-  summarise(n = n()) %>%
-  View() #566 -> NON SO SE ANCORA UTILE
+slots_unique <- d %>%
+  group_by(Denomination, MachineName, MachineType, Model, Manufacturer) %>%
+  summarise(monthRevenue = 
+              mean(GrossRevenuePerMachine),
+              monthPlays = mean(PlaysPerMachine),
+              revenuePerPlay = monthRevenue / monthPlays , count = n())
+  View(slots_unique) #556
 
 
 ###### 27/06 ######
@@ -98,6 +101,9 @@ sept_lib %>%
 #giocate per macchina potrebbe essere il coin in? -> da MAX
 #profitto per macchina -> da MAX
 
+<<<<<<< HEAD
+
+=======
 #### 28/06/2018 #####
 ### PROVA 2 #########
 #####################
@@ -195,3 +201,7 @@ Sistemato2 = d_libra %>%
 #spostamento tra le sezioni. Problema: perdiamo la serie storica perchè se è possibile che alcune
 #categorie di macchine, che presentano più di una macchina (num_macchine > 1) vengano divise tra 2
 #o più sezioni in uno stesso mese. Esempio lampante è la categoria 0.02 reel [vedete].
+<<<<<<< HEAD
+=======
+>>>>>>> 8c99f6280f201a2c18ade1cf6c67bddc811fd526
+>>>>>>> d4c733760aec1212035f9621df95c246746a3b80
