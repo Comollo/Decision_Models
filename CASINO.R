@@ -40,10 +40,13 @@ d_libra %>%
   summarise(n_mac = sum(NoMachines))#macchine totali Libra per mese = OK!
 
 #numero di "macchine" che posso avere
-d %>%
-  group_by(Denomination, MachineName, MachineType, Model) %>%
-  summarise(n = n()) %>%
-  View() #566 -> NON SO SE ANCORA UTILE
+slots_unique <- d %>%
+  group_by(Denomination, MachineName, MachineType, Model, Manufacturer) %>%
+  summarise(monthRevenue = 
+              mean(GrossRevenuePerMachine),
+              monthPlays = mean(PlaysPerMachine),
+              revenuePerPlay = monthRevenue / monthPlays , count = n())
+  View(slots_unique) #556
 
 
 ###### 27/06 ######
