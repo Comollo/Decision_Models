@@ -101,9 +101,6 @@ sept_lib %>%
 #giocate per macchina potrebbe essere il coin in? -> da MAX
 #profitto per macchina -> da MAX
 
-<<<<<<< HEAD
-
-=======
 #### 28/06/2018 #####
 ### PROVA 2 #########
 #####################
