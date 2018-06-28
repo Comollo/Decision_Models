@@ -91,4 +91,4 @@ sept_lib %>%
 #giocate per macchina potrebbe essere il coin in? -> da MAX
 #profitto per macchina -> da MAX
 
-#prova_euge
+
