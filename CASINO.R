@@ -52,7 +52,14 @@ slots_unique <- d %>%
               revenuePerPlay = monthRevenue / monthPlays , count = n())
   View(slots_unique) #556
 
-
+d_aries %>% 
+  filter(NoMachines > 1,
+         Denomination == "0.02",
+         MachineType == "reel"
+         ) %>%
+  arrange(MachineName, Model, Month) %>%
+  View()
+  
 ###### 27/06 ######
 # CATEGORIZATION ##
 ###################
@@ -96,7 +103,8 @@ sept_lib %>%
   summarise(num_macchine = sum(NoMachines),
             profitto_per_macchina = sum(GrossRevenue)/num_macchine, #profitto per macchina di quella categoria
             giocate_per_macchina = sum(Plays)/num_macchine) %>% #giocata per macchina di quella categoria 
-  arrange(MachineType, Denomination) #ok
+  arrange(MachineType, Denomination) %>%
+  View()#ok
 
 #giocate per macchina potrebbe essere il coin in? -> da MAX
 #profitto per macchina -> da MAX
@@ -198,3 +206,81 @@ Sistemato2 = d_libra %>%
 #spostamento tra le sezioni. Problema: perdiamo la serie storica perchè se è possibile che alcune
 #categorie di macchine, che presentano più di una macchina (num_macchine > 1) vengano divise tra 2
 #o più sezioni in uno stesso mese. Esempio lampante è la categoria 0.02 reel [vedete].
+
+#esempio CHAVEZ
+
+isopectic <- d %>% filter( Casino == "Aries", MachineName == "Isopectic Encoding", Denomination == 2, MachineType == "video", Model == "Mirier") %>% 
+  arrange(Month) 
+doppi <- d %>% group_by(Casino, Section, Month, Denomination, MachineType, MachineName, Model, Manufacturer) %>%
+  mutate(n = n()) %>% arrange(Month,  Casino, Section, MachineName, Denomination) %>% filter(n == 2)
+
+###########################################################################################################################################
+
+
+#######################
+# "MODELLO SEMPLICE" #
+######################
+#Lavoriamo solamente su Aries per iniziare
+
+df = d_aries %>%
+  group_by(Denomination, MachineType, Section, Month) %>%
+  summarise(numero_macchine = sum(NoMachines),
+            ricavi_totali = sum(GrossRevenue),
+            ricavo_unitario = ricavi_totali/numero_macchine,
+            giocate_totali = sum(Plays),
+            giocate_unitarie = round(giocate_totali/numero_macchine),
+            ricavo_per_giocata = ricavi_totali/giocate_totali) %>%
+  arrange(Month, Section, MachineType, Denomination)
+df
+
+if(require(linprog)==FALSE) install.packages("linprog")
+library(linprog)
+
+#Modello con vincolo semplice legato solo al quantitativo mensile 
+
+f_obj = df$ricavo_unitario #ricavi unitari = da MAX
+
+a =  c(rep(1,473),
+  ifelse(df$Month == ymd("2011-09-01"), 1, 0),
+  ifelse(df$Month == ymd("2011-09-01"), 1, 0),
+  ifelse(df$Month == ymd("2011-10-01"), 1, 0),
+  ifelse(df$Month == ymd("2011-10-01"), 1, 0),
+  ifelse(df$Month == ymd("2011-11-01"), 1, 0),
+  ifelse(df$Month == ymd("2011-11-01"), 1, 0),
+  ifelse(df$Month == ymd("2011-12-01"), 1, 0),
+  ifelse(df$Month == ymd("2011-12-01"), 1, 0),
+  ifelse(df$Month == ymd("2012-01-01"), 1, 0),
+  ifelse(df$Month == ymd("2012-01-01"), 1, 0),
+  ifelse(df$Month == ymd("2012-02-01"), 1, 0),
+  ifelse(df$Month == ymd("2012-02-01"), 1, 0),
+  ifelse(df$Month == ymd("2012-03-01"), 1, 0),
+  ifelse(df$Month == ymd("2012-03-01"), 1, 0),
+  ifelse(df$Month == ymd("2012-04-01"), 1, 0),
+  ifelse(df$Month == ymd("2012-04-01"), 1, 0),
+  ifelse(df$Month == ymd("2012-05-01"), 1, 0),
+  ifelse(df$Month == ymd("2012-05-01"), 1, 0),
+  ifelse(df$Month == ymd("2012-06-01"), 1, 0),
+  ifelse(df$Month == ymd("2012-06-01"), 1, 0),
+  ifelse(df$Month == ymd("2012-07-01"), 1, 0),
+  ifelse(df$Month == ymd("2012-07-01"), 1, 0),
+  ifelse(df$Month == ymd("2012-08-01"), 1, 0),
+  ifelse(df$Month == ymd("2012-08-01"), 1, 0))
+
+A = matrix(a,25,473, byrow = T) #Matrice A del modello, 1 se valore attivo, 0 altrimenti 
+
+b = c(5896, rep(c(404, 849), 12)) #upper and lower bound
+constraints = c("<=", rep(c(">=", "<="), 12)) 
+
+sol <- solveLP(f_obj, b, A, maximum = TRUE, constraints)
+summary(sol)
+
+shadow_price = sol$con
+
+#proviamo ad aggiungere qualche vincolo
+
+#proporzioni delle sezioni per mese 
+df %>%
+  group_by(Month, Section) %>%
+  summarise(Num_macchine = sum(numero_macchine)) %>%
+  mutate(prop_per_mese = round(Num_macchine / sum(Num_macchine), 2)) %>% #il mutate perde un livello dopo il summarise
+  View()
