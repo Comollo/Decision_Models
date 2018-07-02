@@ -244,6 +244,112 @@ d_aries = d %>%
 d_libra = d %>%
   filter(Casino == "Libra")
 
+
+#keep calm: first exploration
+library(ggplot2)
+ggplot(data=d, aes(x=d$Month, y = d$GrossRevenuePerMachine)) +
+  geom_point(alpha=.4, size=4, color="#880011") +
+  labs(x="Month", y="Gross Revenue per Machine") +
+  theme_classic()
+
+ricavi_mese = df %>% 
+  group_by(Month) %>%
+  summarise(ricavo_medio_unitario = mean(ricavo_unitario), 
+            numero_macchine_medie = mean(numero_macchine),
+            varianza_macchine = sqrt(var(numero_macchine)))
+ricavi_mese$Month = as.factor(ricavi_mese$Month)
+
+ggplot(data=ricavi_mese, aes(x=ricavi_mese$Month, y = ricavi_mese$ricavo_medio_unitario)) +
+  geom_line(alpha=.5, size=1, color="#880011") +
+  ggtitle("Ricavi per Mese") +
+  labs(x="Mese", y="Ricavo medio unitario") +
+  theme_classic()
+
+ggplot(data=ricavi_mese, aes(x=ricavi_mese$numero_macchine_medie,
+                             y=ricavi_mese$ricavo_medio_unitario,
+                             colour = Month)) +
+  geom_point(alpha=.4, size=4) +
+  ggtitle("Ricavi e Numero macchine mensili") +
+  labs(x="Numero medio macchine", y="Ricavi medi unitari") + 
+  theme_minimal()
+
+ricavi_categoria = df %>%
+  group_by(Denomination, MachineType) %>%
+  summarise(ricavo_medio_unitario = mean(ricavo_unitario)) %>%
+  mutate(type = paste0(Denomination,sep = "_", MachineType))
+
+
+ggplot(data=ricavi_categoria, aes(x=ricavi_categoria$type, y = ricavi_categoria$ricavo_medio_unitario)) +
+  geom_point(alpha=.5, size=3, color="#880011") +
+  ggtitle("Ricavi per Categoria") +
+  labs(x="Categoria", y="Ricavo medio unitario") +
+  theme_classic()
+
+ricavi_sezione = df %>% 
+  group_by(Section) %>%
+  summarise(ricavo_medio_unitario = mean(ricavo_unitario))
+
+ggplot(data=ricavi_sezione, aes(x=ricavi_sezione$Section, y = ricavi_sezione$ricavo_medio_unitario)) +
+  geom_point(alpha=.5, size=3, color="#880011") +
+  ggtitle("Ricavi per Sezione") +
+  labs(x="Sezione", y="Ricavo medio unitario") +
+  theme_classic()
+
+df %>%
+  group_by(Denomination, MachineType) %>%
+  summarise(n = n()) #13 categorie al massimo
+
+catgeorie_mese = 
+  df %>% 
+  group_by(Month, Denomination, MachineType) %>% 
+  summarise(n =n()) %>% 
+  group_by(Month) %>%
+  summarise(numero_categorie = n()) #alla fine restano più o meno 13 = raggruppamento per categoria ha senso[per aries]
+
+df %>% 
+  group_by(Section, Month) %>% 
+  summarise(n =n()) %>%
+  View()
+
+# ggplot(data=df, aes(x=df$ricavo_unitario)) +
+#   geom_histogram(fill="#880011") +  
+#   labs(x="Ricavo unitario", y="Count\nof Records") +
+#   facet_wrap(~df$Month) +
+#   theme_minimal()
+
+df %>% group_by(tipo, Section) %>%
+  summarise(n = n()) %>%
+  arrange(tipo, Section) %>%
+  group_by(Section) %>%
+  summarise(n = n()) %>%
+  View() #Nelle sezioni le categorie sono più o meno le stesse per tutto l'anno  = Ha senso questo raggruppamento 
+
+df %>% group_by(tipo, Section, Month) %>%
+  summarise(n = n()) %>%
+  arrange(tipo, Section) %>%
+  group_by(Section) %>%
+  summarise(n = n()) %>%
+  View() 
+
+df %>% group_by(Section, Month) %>%
+  summarise(n = n()) %>%
+  arrange(Section) %>%
+  View()
+
+df %>% group_by(Section, Month) %>%
+  summarise(n = n()) %>%
+  arrange(Section) %>%
+  group_by(Section) %>%
+  summarise(Numero_medio_macchine = mean(n), Varianza_macchine = sqrt(var(n))) %>%
+  View()
+
+df %>% group_by(Section, Month) %>%
+  summarise(n = n()) %>%
+  arrange(Section) %>%
+  group_by(Month) %>%
+  summarise(Numero_medio_macchine = mean(n), Varianza_macchine = sqrt(var(n))) %>%
+  View()
+
 #######################
 # "MODELLO SEMPLICE" #
 ######################
@@ -310,80 +416,18 @@ shadow_price = sol$con
 df %>%
   group_by(Month, Section) %>%
   summarise(Num_macchine = sum(numero_macchine)) %>%
-  mutate(prop_per_mese = round(Num_macchine / sum(Num_macchine), 2)) %>% #il mutate perde un livello dopo il summarise
-  View()
+  mutate(prop_per_mese = round(Num_macchine / sum(Num_macchine), 2)) %>%
+  View()#il mutate perde un livello dopo il summarise
 
-#keep calm: first exploration
-library(ggplot2)
-ggplot(data=d, aes(x=d$Month, y = d$GrossRevenuePerMachine)) +
-  geom_point(alpha=.4, size=4, color="#880011") +
-  labs(x="Month", y="Gross Revenue per Machine") +
-  theme_classic()
+#Cerco di capire come individuare le variabili per un mese...poi estendo a tutti e 12 i mesi
 
-ricavi_mese = df %>% 
-  group_by(Month) %>%
-  summarise(ricavo_medio_unitario = mean(ricavo_unitario))
+#numeratore proporzione
+ifelse(df$Month == ymd("2011-09-01")  & df$Section == "Boundary", 1, 0) #ok
 
-ggplot(data=ricavi_mese, aes(x=ricavi_mese$Month, y = ricavi_mese$ricavo_medio_unitario)) +
-  geom_line(alpha=.5, size=1, color="#880011") +
-  ggtitle("Ricavi per Mese") +
-  labs(x="Mese", y="Ricavo medio unitario") +
-  theme_classic()
+#denominatore 
+ifelse(df$Month == ymd("2011-09-01"), 1, 0) #ok
 
-ricavi_categoria = df %>%
-  group_by(Denomination, MachineType) %>%
-  summarise(ricavo_medio_unitario = mean(ricavo_unitario)) %>%
-  mutate(type = paste0(Denomination,sep = "_", MachineType))
-  
-  
-ggplot(data=ricavi_categoria, aes(x=ricavi_categoria$type, y = ricavi_categoria$ricavo_medio_unitario)) +
-  geom_point(alpha=.5, size=3, color="#880011") +
-  ggtitle("Ricavi per Categoria") +
-  labs(x="Categoria", y="Ricavo medio unitario") +
-  theme_classic()
+#vincolo base
 
-ricavi_sezione = df %>% 
-  group_by(Section) %>%
-  summarise(ricavo_medio_unitario = mean(ricavo_unitario))
-
-ggplot(data=ricavi_sezione, aes(x=ricavi_sezione$Section, y = ricavi_sezione$ricavo_medio_unitario)) +
-  geom_point(alpha=.5, size=3, color="#880011") +
-  ggtitle("Ricavi per Sezione") +
-  labs(x="Sezione", y="Ricavo medio unitario") +
-  theme_classic()
-
-df %>%
-  group_by(Denomination, MachineType) %>%
-  summarise(n = n()) #13 categorie al massimo
-
-catgeorie_mese = 
-  df %>% 
-  group_by(Month, Denomination, MachineType) %>% 
-  summarise(n =n()) %>% 
-  group_by(Month) %>%
-  summarise(numero_categorie = n()) #alla fine restano più o meno 13 = raggruppamento per categoria ha senso[per aries]
-
-df %>% 
-  group_by(Section, Month) %>% 
-  summarise(n =n()) %>%
-  View()
-
-ggplot(data=df, aes(x=df$ricavo_unitario)) +
-  geom_histogram(fill="#880011") +  
-  labs(x="Ricavo unitario", y="Count\nof Records") +
-  facet_wrap(~df$Month) +
-  theme_minimal()
-
-df %>% group_by(tipo, Section) %>%
-  summarise(n = n()) %>%
-  arrange(tipo, Section) %>%
-  group_by(Section) %>%
-  summarise(n = n()) %>%
-  View() #Nelle sezioni le categorie sono più o meno le stesse per tutto l'anno  = Ha senso questo raggruppamento 
-
-df %>% group_by(tipo, Section, Month) %>%
-  summarise(n = n()) %>%
-  arrange(tipo, Section) %>%
-  group_by(Section) %>%
-  summarise(n = n()) %>%
-  View() 
+#0.2 <= numerato/denominatore <= 0.3
+#ma si può? forse occorre scriverlo in maniera diversa?
