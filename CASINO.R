@@ -214,9 +214,9 @@
 # doppi <- d %>% group_by(Casino, Section, Month, Denomination, MachineType, MachineName, Model, Manufacturer) %>%
 #   mutate(n = n()) %>% arrange(Month,  Casino, Section, MachineName, Denomination) %>% filter(n == 2)
 
-###########################################################################################################################################
-# CODE 2
-###########################################################################################################################################
+####################
+# STRATEGIA 1: MODELLO MACRO DIVISO PER CASINO
+####################
 options(scipen = 999)
 
 library(rstudioapi)
@@ -226,7 +226,7 @@ setwd(dirname(current_path ))
 print(getwd())
 
 library(readxl)
-d = read_excel("Lucky Duck Entertainment revenue 2013.xls", na = c(".", "NA", "NaN"))
+slot = read_excel("Lucky Duck Entertainment revenue 2013.xls", na = c(".", "NA", "NaN"))
 
 library(funModeling)
 library(dplyr)
@@ -237,16 +237,15 @@ status = df_status(d, print_results = F)
 summary(d$Month) #12 mesi
 
 #aries
-d_aries = d %>%
+d_aries = slot %>%
   filter(Casino == "Aries")
 
 #libra
-d_libra = d %>%
+d_libra = slot %>%
   filter(Casino == "Libra")
 
 
 #keep calm: first exploration -> only aries
-
 
 df = d_aries %>%
   group_by(Denomination, MachineType, Section, Month) %>%
@@ -260,7 +259,7 @@ df = d_aries %>%
   mutate(tipo = paste0(MachineType, "_", Denomination))
 
 library(ggplot2)
-ggplot(data=d, aes(x=d$Month, y = d$GrossRevenuePerMachine)) +
+ggplot(data=slot, aes(x=slot$Month, y = slot$GrossRevenuePerMachine)) +
   geom_point(alpha=.4, size=4, color="#880011") +
   labs(x="Month", y="Gross Revenue per Machine") +
   theme_classic()
@@ -355,18 +354,18 @@ df %>% group_by(Section, Month) %>%
   summarise(n = n()) %>%
   arrange(Section) %>%
   group_by(Section) %>%
-  summarise(Numero_medio_macchine = mean(n), Varianza_macchine = sqrt(var(n))) %>%
+  summarise(Numero_medio_categorie = mean(n), Varianza_categorie = sqrt(var(n))) %>%
   View()
 
 df %>% group_by(Section, Month) %>%
   summarise(n = n()) %>%
   arrange(Section) %>%
   group_by(Month) %>%
-  summarise(Numero_medio_macchine = mean(n), Varianza_macchine = sqrt(var(n))) %>%
+  summarise(Numero_medio_categorie = mean(n), Varianza_categorie = sqrt(var(n))) %>%
   View()
 
 #######################
-# "MODELLO SEMPLICE" #
+# "Modello semplice" #
 ######################
 #Lavoriamo solamente su Aries per iniziare
 
@@ -425,10 +424,10 @@ df %>%
 #Cerco di capire come individuare le variabili per un mese...poi estendo a tutti e 12 i mesi
 
 #numeratore proporzione
-ifelse(df$Month == ymd("2011-09-01")  & df$Section == "Boundary", 1, 0) #ok
+# ifelse(df$Month == ymd("2011-09-01")  & df$Section == "Boundary", 1, 0) #ok
 
 #denominatore 
-ifelse(df$Month == ymd("2011-09-01"), 1, 0) #ok
+# ifelse(df$Month == ymd("2011-09-01"), 1, 0) #ok
 
 #vincolo base
 
@@ -438,10 +437,12 @@ ifelse(df$Month == ymd("2011-09-01"), 1, 0) #ok
 
 x = df %>%
   group_by(Month) %>%
-  summarise(Num_macchine = sum(numero_macchine))
+  summarise(Num_macchine = sum(numero_macchine)) 
 
 variazione = round(sqrt(var(x$Num_macchine))) #potremmo usare questo per definire gli upper e lower 
 
+d = unique(ymd(df$Month))
+s = unique(df$Section)
 a1 = c()
 for (i in 1:12) {
   for (k in 1:4) {
@@ -465,11 +466,230 @@ for (i in 1:length(x$Num_macchine)) {
 
 v = c(rbind(inferiore,superiore)) #unire 2 vettori in modo alternato 
 
-b = c(5896, rep(c(404, 849), 12), rep(c(0.2*404,0.3*849), 48))
+b = c(5896, rep(c(404, 849), 12), rep(c(round(0.2*404),round(0.3*849)), 48))
 constraints = c("<=", rep(c(">=", "<="), 12), rep(c(">=", "<="), 48))
 
 sol <- solveLP(f_obj, b, A, maximum = TRUE, constraints)
 summary(sol)
 
 shadow_price = sol$con
-#riga 26 ????
+#dovrebbero essere giusti
+
+#bisogna mettere dei vincoli legato al numero di categorie minime in ciascuna sezione e per ciascun mese
+
+#################
+# STRATEGIA 2: OTTIMIZZO MESE PER MESE MA PER ENTRAMBI I CASINO
+#################
+
+tot = slot %>%
+  group_by(Casino, Denomination, MachineType, Section, Month) %>%
+  summarise(numero_macchine = sum(NoMachines),
+            ricavi_totali = sum(GrossRevenue),
+            ricavo_unitario = ricavi_totali/numero_macchine,
+            giocate_totali = sum(Plays),
+            giocate_unitarie = round(giocate_totali/numero_macchine),
+            ricavo_per_giocata = ricavi_totali/giocate_totali) %>%
+  arrange(Month, Section, MachineType, Denomination) %>%
+  mutate(tipo = paste0(MachineType, "_", Denomination))
+
+ricavi_mese = tot %>% 
+  group_by(Month) %>%
+  summarise(ricavo_medio_unitario = mean(ricavo_unitario), 
+            numero_macchine_medie = mean(numero_macchine),
+            varianza_macchine = sqrt(var(numero_macchine)))
+
+ggplot(data=ricavi_mese, aes(x=ricavi_mese$Month, y = ricavi_mese$ricavo_medio_unitario)) +
+  geom_line(alpha=.5, size=1, color="#880011") +
+  ggtitle("Ricavi per Mese") +
+  labs(x="Mese", y="Ricavo medio unitario") +
+  theme_classic() #non è un andamento lineare!
+
+ricavi_mese$Month = as.factor(ricavi_mese$Month) 
+ggplot(data=ricavi_mese, aes(x=ricavi_mese$numero_macchine_medie,
+                             y=ricavi_mese$ricavo_medio_unitario,
+                             colour = Month)) +
+  geom_point(alpha=.4, size=4) +
+  ggtitle("Ricavi e Numero macchine mensili") +
+  labs(x="Numero medio macchine", y="Ricavi medi unitari") + 
+  theme_minimal()
+
+ricavi_categoria = tot %>%
+  group_by(Denomination, MachineType) %>%
+  summarise(ricavo_medio_unitario = mean(ricavo_unitario)) %>%
+  mutate(type = paste0(Denomination,sep = "_", MachineType))
+
+
+ggplot(data=ricavi_categoria, aes(x=ricavi_categoria$type, y = ricavi_categoria$ricavo_medio_unitario)) +
+  geom_point(alpha=.5, size=3, color="#880011") +
+  ggtitle("Ricavi per Categoria") +
+  labs(x="Categoria", y="Ricavo medio unitario") +
+  theme_classic()
+
+ricavi_sezione = tot %>% 
+  group_by(Section) %>%
+  summarise(ricavo_medio_unitario = mean(ricavo_unitario))
+
+ggplot(data=ricavi_sezione, aes(x=ricavi_sezione$Section, y = ricavi_sezione$ricavo_medio_unitario)) +
+  geom_point(alpha=.5, size=3, color="#880011") +
+  ggtitle("Ricavi per Sezione") +
+  labs(x="Sezione", y="Ricavo medio unitario") +
+  theme_classic()
+
+tot %>%
+  group_by(tipo) %>%
+  summarise(n = n()) %>%
+  View()#14 categorie al massimo
+
+tot %>% 
+  group_by(Casino,Section, Month) %>% 
+  summarise(n =n()) %>%
+  View()
+
+tot %>% group_by(Casino, tipo, Section) %>%
+  summarise(n = n()) %>%
+  arrange(tipo, Section) %>%
+  group_by(Section) %>%
+  summarise(n = n()) %>%
+  View() #Modifica
+
+tot %>% group_by(Casino, tipo, Section, Month) %>%
+  summarise(n = n()) %>%
+  arrange(tipo, Section) %>%
+  group_by(Section) %>%
+  summarise(n = n()) %>%
+  View()
+
+tot %>% group_by(Casino, Section, Month) %>%
+  summarise(n = n()) %>%
+  arrange(Casino, Section) %>%
+  group_by(Casino, Section) %>%
+  summarise(Numero_medio_categorie = mean(n), Varianza_categorie = sqrt(var(n))) %>%
+  View() 
+
+tot %>% group_by(Casino, Section, Month) %>%
+  summarise(n = n()) %>%
+  arrange(Casino, Section) %>%
+  group_by(Month) %>%
+  summarise(Numero_medio_categorie = mean(n), Varianza_categorie = sqrt(var(n))) %>%
+  View() #Modifica?
+
+##########
+# Modello solo per settembre
+#########
+
+set = tot %>%
+  filter(Month == ymd("2011-09-01")) %>%
+  arrange(Casino)
+
+f_obj = round(set$ricavo_unitario) #ricavi unitari = da MAX
+
+#quante macchine ci sono al mese nei 2 casino? 
+tot %>% 
+  group_by(Casino, Month) %>%
+  summarise(n_macchine = sum(numero_macchine)) %>%
+  arrange(Month) %>%
+  View()
+
+#costruzione vincolo
+ai = c(ifelse(set$Casino == "Aries", 1, 0),
+       ifelse(set$Casino == "Libra", 1, 0))
+A = matrix(ai,
+           2
+           ,
+           78,
+           byrow = T)#Matrice A del modello, 1 se valore attivo, 0 altrimenti 
+
+b = c(849, 230) #upper and lower bound
+constraints = c("<=", "<=") 
+
+library(linprog)
+sol <- solveLP(f_obj, b, A, maximum = TRUE, constraints)
+summary(sol)
+
+shadow_price = sol$con #solo con questo vincolo le macchine vengo piazzate dove il ricavo unitario è massimo
+
+#proviamo ad aggiungere qualche vincolo
+
+#la proporzione di macchine in ciascuna sezione deve essere tra la percentuale minima e quella massima
+set %>%
+  group_by(Casino, Section) %>%
+  summarise(Num_macchine = sum(numero_macchine)) %>%
+  mutate(prop_per_mese = round(Num_macchine / sum(Num_macchine), 2)) %>%
+  View()#il mutate perde un livello dopo il summarise
+
+
+s = unique(set$Section)
+casino = unique(set$Casino)
+a1 = c()
+
+for (t in 1:2) {
+  for (i in 1:4) {
+    for (k in 1:2) {
+      a1 = append(a1, ifelse(set$Section == s[i] & set$Casino == casino[t], 1, 0))
+    }
+  }
+}
+
+A1 = matrix(a1,16,78, byrow = T)
+A = rbind(A, A1)
+
+b = c(5896, rep(c(404, 849), 12)) #upper and lower bound
+
+# inferiore = c()
+# superiore = c()
+# for (i in 1:length(x$Num_macchine)) {
+#   inferiore[i] = x$Num_macchine[i] - variazione
+#   superiore[i] = x$Num_macchine[i] + variazione
+# }
+
+# v = c(rbind(inferiore,superiore)) #unire 2 vettori in modo alternato 
+
+b = c(849, 230, rep(c(round(0.2*849), round(0.3*849)), 4), rep(c(round(0.15*230), round(0.4*230)), 4))
+constraints = c("<=", "<=", rep(c(">=", "<="), 8))
+
+sol <- solveLP(f_obj, b, A, maximum = TRUE, constraints)
+summary(sol)
+
+shadow_price = sol$con
+
+#anche le categorie non dovrebbero essere nulle??
+#forse si -> valutiamo
+
+set %>%
+  group_by(Casino, tipo) %>%
+  summarise(n = n(), macchine = sum(numero_macchine)) %>%
+  View()
+#almeno una categoria in ciascun casino! onesto 
+
+tipo = unique(set$tipo)
+casino = unique(set$Casino)
+a2 = c()
+
+for (t in 1:2) {
+  for (i in 1:14) {
+      a2 = append(a2, ifelse(set$tipo == tipo[i] & set$Casino == casino[t], 1, 0))
+    }
+  }
+
+
+A2 = matrix(a2,28,78, byrow = T) #dovrebbe esserci una riga di tutti 0; presumo sia la 14 perchè in aries ci sono 13 e non 14 categorie
+
+#check
+all(rep(0,78) == A2[14,0]) #yes -> da rimuovere
+
+#c'è un errore nella costruzione della matrice A2 -> forse no proviamo!    
+A2 = A2[c(1:13,15:28),]
+A = rbind(A, A2)
+
+
+b = c(849, 230, #vincoli 1
+      rep(c(round(0.2*849), round(0.3*849)), 4), rep(c(round(0.15*230), round(0.4*230)), 4), #vincoli 2
+      rep(1,27)) #vincoli 3
+constraints = c("<=", "<=",
+                rep(c(">=", "<="), 8),
+                rep(">=", 27))
+
+sol <- solveLP(f_obj, b, A, maximum = TRUE, constraints)
+summary(sol)
+
+shadow_price = sol$con
