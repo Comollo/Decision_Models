@@ -492,6 +492,8 @@ tot = slot %>%
   arrange(Month, Section, MachineType, Denomination) %>%
   mutate(tipo = paste0(MachineType, "_", Denomination))
 
+tot = as.data.frame(tot)
+
 ricavi_mese = tot %>% 
   group_by(Month) %>%
   summarise(ricavo_medio_unitario = mean(ricavo_unitario), 
@@ -504,7 +506,8 @@ ggplot(data=ricavi_mese, aes(x=ricavi_mese$Month, y = ricavi_mese$ricavo_medio_u
   labs(x="Mese", y="Ricavo medio unitario") +
   theme_classic() #non è un andamento lineare!
 
-ricavi_mese$Month = as.factor(ricavi_mese$Month) 
+ricavi_mese$Month = as.factor(ricavi_mese$Month)
+
 ggplot(data=ricavi_mese, aes(x=ricavi_mese$numero_macchine_medie,
                              y=ricavi_mese$ricavo_medio_unitario,
                              colour = Month)) +
@@ -581,7 +584,9 @@ set = tot %>%
   filter(Month == ymd("2011-09-01")) %>%
   arrange(Casino)
 
-f_obj = round(set$ricavo_unitario) #ricavi unitari = da MAX
+set = as.data.frame(set)
+
+f_obj = round(set$ricavo_per_giocata) #ricavi unitari = da MAX
 
 #quante macchine ci sono al mese nei 2 casino? 
 tot %>% 
@@ -647,7 +652,7 @@ set %>%
   group_by(Casino, tipo) %>%
   summarise(n = n(), macchine = sum(numero_macchine)) %>%
   View()
-#almeno una categoria in ciascun casino! onesto -> questione di gusti dei clienti!
+#almeno una macchina per categoria in ciascun casino! onesto -> questione di gusti dei clienti!
 
 tipo = unique(set$tipo)
 casino = unique(set$Casino)
@@ -672,6 +677,7 @@ A = rbind(A, A2)
 b = c(849, 230, #vincoli 1
       rep(c(round(0.2*849), round(0.3*849)), 4), rep(c(round(0.15*230), round(0.4*230)), 4), #vincoli 2
       rep(1,27)) #vincoli 3
+
 constraints = c("<=", "<=",
                 rep(c(">=", "<="), 8),
                 rep(">=", 27))
@@ -680,4 +686,44 @@ sol <- solveLP(f_obj, b, A, maximum = TRUE, constraints)
 summary(sol)
 
 shadow_price = sol$con
-x = set[which(sol$solution != 0),] #soluzione sul dataset!
+x = set[which(sol$solution != 0),] %>%
+  arrange(Casino, tipo) #soluzione sul dataset!
+
+#noi però stiamo ottimizzando sul numero di macchine per categoria perciò forse avrebbe più senso avere:
+#tutte le categorie attive in settembre;
+#più macchine per categoria altrimenti come fanno a giocare i tizi?
+
+#forse le macchine cin più giocate sono quelle più utilizzate?
+
+
+ggplot(data=set, aes(x=set$giocate_totali, y = set$numero_macchine)) +
+  geom_point(alpha=.5, size=3, color="#880011") +
+  ggtitle("Più macchine ci sono più si gioca? Si") +
+  labs(x="Giocate Totali", y="Numero di Macchine") +
+  theme_classic() #si
+
+ggplot(data=set, aes(x= set$Denomination, y=set$giocate_unitarie)) +
+  geom_point(alpha=.5, size=3, color="#880011") +
+  ggtitle("Più monete piccole puoi inserire più giochi? No!") +
+  labs(x="Wage minimo", y="giocate unitarie") +
+  theme_classic() #no
+
+#potremmo mettere un vincolo che si basi sulle giocate unitarie;
+#se le giocate unitarie sono alte -> preferenza dei consumatori -> numero macchine deve essere >= di una certa soglia;
+#se le giocate unitarie sono basse -> numero macchine <= di una certa soglia 
+
+set$Casino = as.factor(set$Casino)
+
+ggplot(set, aes(x=Casino, y=giocate_unitarie, fill = Casino)) + 
+  geom_boxplot(outlier.colour="red", outlier.shape=8,
+               outlier.size=4) +
+  labs(y = "Giocate unitarie") +
+  ggtitle("Distribuzione giocate unitarie") +
+  geom_jitter(shape=16, position=position_jitter(0.2)) +
+  theme_dark()
+  
+#per piazzare le soglie potremmo usare i quartili
+
+summary(set[set$Casino == "Aries", "giocate_unitarie"])
+summary(set[set$Casino == "Libra", "giocate_unitarie"])
+
