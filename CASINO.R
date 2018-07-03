@@ -594,8 +594,7 @@ tot %>%
 ai = c(ifelse(set$Casino == "Aries", 1, 0),
        ifelse(set$Casino == "Libra", 1, 0))
 A = matrix(ai,
-           2
-           ,
+           2,
            78,
            byrow = T)#Matrice A del modello, 1 se valore attivo, 0 altrimenti 
 
@@ -618,31 +617,20 @@ set %>%
   View()#il mutate perde un livello dopo il summarise
 
 
-s = unique(set$Section)
+section = unique(set$Section)
 casino = unique(set$Casino)
 a1 = c()
 
 for (t in 1:2) {
   for (i in 1:4) {
     for (k in 1:2) {
-      a1 = append(a1, ifelse(set$Section == s[i] & set$Casino == casino[t], 1, 0))
+      a1 = append(a1, ifelse(set$Section == section[i] & set$Casino == casino[t], 1, 0))
     }
   }
 }
 
 A1 = matrix(a1,16,78, byrow = T)
 A = rbind(A, A1)
-
-b = c(5896, rep(c(404, 849), 12)) #upper and lower bound
-
-# inferiore = c()
-# superiore = c()
-# for (i in 1:length(x$Num_macchine)) {
-#   inferiore[i] = x$Num_macchine[i] - variazione
-#   superiore[i] = x$Num_macchine[i] + variazione
-# }
-
-# v = c(rbind(inferiore,superiore)) #unire 2 vettori in modo alternato 
 
 b = c(849, 230, rep(c(round(0.2*849), round(0.3*849)), 4), rep(c(round(0.15*230), round(0.4*230)), 4))
 constraints = c("<=", "<=", rep(c(">=", "<="), 8))
@@ -659,7 +647,7 @@ set %>%
   group_by(Casino, tipo) %>%
   summarise(n = n(), macchine = sum(numero_macchine)) %>%
   View()
-#almeno una categoria in ciascun casino! onesto 
+#almeno una categoria in ciascun casino! onesto -> questione di gusti dei clienti!
 
 tipo = unique(set$tipo)
 casino = unique(set$Casino)
@@ -681,7 +669,6 @@ all(rep(0,78) == A2[14,0]) #yes -> da rimuovere
 A2 = A2[c(1:13,15:28),]
 A = rbind(A, A2)
 
-
 b = c(849, 230, #vincoli 1
       rep(c(round(0.2*849), round(0.3*849)), 4), rep(c(round(0.15*230), round(0.4*230)), 4), #vincoli 2
       rep(1,27)) #vincoli 3
@@ -693,3 +680,4 @@ sol <- solveLP(f_obj, b, A, maximum = TRUE, constraints)
 summary(sol)
 
 shadow_price = sol$con
+x = set[which(sol$solution != 0),] #soluzione sul dataset!
