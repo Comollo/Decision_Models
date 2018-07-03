@@ -245,7 +245,20 @@ d_libra = d %>%
   filter(Casino == "Libra")
 
 
-#keep calm: first exploration
+#keep calm: first exploration -> only aries
+
+
+df = d_aries %>%
+  group_by(Denomination, MachineType, Section, Month) %>%
+  summarise(numero_macchine = sum(NoMachines),
+            ricavi_totali = sum(GrossRevenue),
+            ricavo_unitario = ricavi_totali/numero_macchine,
+            giocate_totali = sum(Plays),
+            giocate_unitarie = round(giocate_totali/numero_macchine),
+            ricavo_per_giocata = ricavi_totali/giocate_totali) %>%
+  arrange(Month, Section, MachineType, Denomination) %>%
+  mutate(tipo = paste0(MachineType, "_", Denomination))
+
 library(ggplot2)
 ggplot(data=d, aes(x=d$Month, y = d$GrossRevenuePerMachine)) +
   geom_point(alpha=.4, size=4, color="#880011") +
@@ -257,13 +270,14 @@ ricavi_mese = df %>%
   summarise(ricavo_medio_unitario = mean(ricavo_unitario), 
             numero_macchine_medie = mean(numero_macchine),
             varianza_macchine = sqrt(var(numero_macchine)))
-ricavi_mese$Month = as.factor(ricavi_mese$Month)
 
 ggplot(data=ricavi_mese, aes(x=ricavi_mese$Month, y = ricavi_mese$ricavo_medio_unitario)) +
   geom_line(alpha=.5, size=1, color="#880011") +
   ggtitle("Ricavi per Mese") +
   labs(x="Mese", y="Ricavo medio unitario") +
   theme_classic()
+
+ricavi_mese$Month = as.factor(ricavi_mese$Month)
 
 ggplot(data=ricavi_mese, aes(x=ricavi_mese$numero_macchine_medie,
                              y=ricavi_mese$ricavo_medio_unitario,
@@ -297,9 +311,10 @@ ggplot(data=ricavi_sezione, aes(x=ricavi_sezione$Section, y = ricavi_sezione$ric
 
 df %>%
   group_by(Denomination, MachineType) %>%
-  summarise(n = n()) #13 categorie al massimo
+  summarise(n = n()) %>%
+  View()#13 categorie al massimo
 
-catgeorie_mese = 
+categorie_mese = 
   df %>% 
   group_by(Month, Denomination, MachineType) %>% 
   summarise(n =n()) %>% 
@@ -354,18 +369,6 @@ df %>% group_by(Section, Month) %>%
 # "MODELLO SEMPLICE" #
 ######################
 #Lavoriamo solamente su Aries per iniziare
-
-df = d_aries %>%
-  group_by(Denomination, MachineType, Section, Month) %>%
-  summarise(numero_macchine = sum(NoMachines),
-            ricavi_totali = sum(GrossRevenue),
-            ricavo_unitario = ricavi_totali/numero_macchine,
-            giocate_totali = sum(Plays),
-            giocate_unitarie = round(giocate_totali/numero_macchine),
-            ricavo_per_giocata = ricavi_totali/giocate_totali) %>%
-  arrange(Month, Section, MachineType, Denomination) %>%
-  mutate(tipo = paste0(MachineType, "_", Denomination))
-df
 
 if(require(linprog)==FALSE) install.packages("linprog")
 library(linprog)
@@ -429,5 +432,44 @@ ifelse(df$Month == ymd("2011-09-01"), 1, 0) #ok
 
 #vincolo base
 
-#0.2 <= numerato/denominatore <= 0.3
-#ma si può? forse occorre scriverlo in maniera diversa?
+#0.2 <= numeratore/denominatore <= 0.3
+#ma si può? forse occorre scriverlo in maniera diversa? 
+#No non è lineare!
+
+x = df %>%
+  group_by(Month) %>%
+  summarise(Num_macchine = sum(numero_macchine))
+
+variazione = round(sqrt(var(x$Num_macchine))) #potremmo usare questo per definire gli upper e lower 
+
+a1 = c()
+for (i in 1:12) {
+  for (k in 1:4) {
+    for (t in 1:2) {
+      a1 = append(a1, ifelse(df$Month == d[i] & df$Section ==s[k], 1, 0))
+    }
+  }
+}
+
+A1 = matrix(a1,96,473, byrow = T)
+A = rbind(A, A1)
+
+b = c(5896, rep(c(404, 849), 12)) #upper and lower bound
+
+inferiore = c()
+superiore = c()
+for (i in 1:length(x$Num_macchine)) {
+  inferiore[i] = x$Num_macchine[i] - variazione
+  superiore[i] = x$Num_macchine[i] + variazione
+}
+
+v = c(rbind(inferiore,superiore)) #unire 2 vettori in modo alternato 
+
+b = c(5896, rep(c(404, 849), 12), rep(c(0.2*404,0.3*849), 48))
+constraints = c("<=", rep(c(">=", "<="), 12), rep(c(">=", "<="), 48))
+
+sol <- solveLP(f_obj, b, A, maximum = TRUE, constraints)
+summary(sol)
+
+shadow_price = sol$con
+#riga 26 ????
