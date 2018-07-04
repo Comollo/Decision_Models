@@ -289,7 +289,8 @@ tot = as.data.frame(tot)
 
 ricavi_mese = tot %>% 
   group_by(Month) %>%
-  summarise(ricavo_medio_unitario = mean(ricavo_unitario), 
+  summarise(ricavo_medio_totale = mean(ricavi_totali),
+            ricavo_medio_unitario = mean(ricavo_unitario),
             numero_macchine_medie = mean(numero_macchine),
             varianza_macchine = sqrt(var(numero_macchine)))
 
@@ -301,13 +302,26 @@ ggplot(data=ricavi_mese, aes(x=ricavi_mese$Month, y = ricavi_mese$ricavo_medio_u
 #non è un andamento lineare: le linee servono per sottolineare il fenomeno altalenante. Non esiste rilevazione infra mese
 
 ricavi_mese$Month = as.factor(ricavi_mese$Month)
+
+#NOTA: non ho idea se abbia più senso mettere i ricavi medi unitari (grafico 1) o i ricavi medi totali (grafico 2)
+ggplot(data=ricavi_mese, aes(x=ricavi_mese$numero_macchine_medie,
+                             y=ricavi_mese$ricavo_medio_totale,
+                             colour = Month)) +
+  geom_point(alpha=.4, size=4) +
+  ggtitle("Più macchine hai più guadagni? In linea di massima SI!") +
+  labs(x="Numero medio macchine per categoria", y="Ricavi medi totali per categoria") + 
+  theme_minimal()
+
 ggplot(data=ricavi_mese, aes(x=ricavi_mese$numero_macchine_medie,
                              y=ricavi_mese$ricavo_medio_unitario,
                              colour = Month)) +
   geom_point(alpha=.4, size=4) +
-  ggtitle("Più macchine hai più guadagni? No!") +
+  ggtitle("Tante macchine non significa ricavi unitari elevati!") +
   labs(x="Numero medio macchine per categoria", y="Ricavi medi unitari per categoria") + 
   theme_minimal()
+
+#io dai grafici deduco questo: ha settembre ho tante macchine con ricavi unitari bassi che nel complesso mi fanno guadagnare molto;
+#negli altri mesi la situazione è altalenante: marzo per esempio ha poche macchine ma con ricavo unitario elevatissimo
 
 ricavi_categoria = tot %>%
   group_by(Denomination, MachineType) %>%
@@ -394,6 +408,12 @@ A = matrix(a,
            78,
            byrow = T)
 
+#Forse così è più semplice??!!
+library(caret)
+ex = predict(dummyVars(~Casino, data = set), newdata = set)
+ex = t(ex)
+all(ex == A)
+
 #Vettore B del modello lineare
 b = c(849, 230) #upper bound
 constraints = c("<=", "<=") 
@@ -404,6 +424,11 @@ sol <- solveLP(f_obj, b, A, maximum = TRUE, constraints) #solver
 #risultato 1
 summary(sol)
 shadow_price = sol$con
+
+#risultato sul dataset
+set[which(sol$solution != 0),] %>%
+  arrange(Casino, tipo) %>%
+  View()
 #Avendo solo questo vincolo le macchine vengo piazzate dove il ricavo unitario è massimo. Mi sembra ragionevole
 #E' chiaro che occorre tenere in considerazione altri vincoli.
 
@@ -421,13 +446,13 @@ set %>%
 
 Vincolo2 = function(df){
   "funzione per costruire il vincolo 2"
-  s = unique(df$Section)
-  c = unique(df$Casino)
+  x = unique(df$Section)
+  y = unique(df$Casino)
   a = c()
-  for (t in 1:2) {
-    for (i in 1:4) {
+  for (t in 1:length(y)) {
+    for (i in 1:length(x)) {
       for (k in 1:2) {
-        a = append(a, ifelse(df$Section == s[i] & df$Casino == c[t], 1, 0))
+        a = append(a, ifelse(df$Section == x[i] & df$Casino == y[t], 1, 0))
       }
     }
   }
@@ -451,71 +476,118 @@ constraints = c(constraints,
 #Risultato 2
 sol <- solveLP(f_obj, b, A, maximum = TRUE, constraints)
 summary(sol)
-
 shadow_price = sol$con
 
-#anche le categorie non dovrebbero essere nulle??
-#forse si -> valutiamo
+#risultato sul dataset
+set[which(sol$solution != 0),] %>%
+  arrange(Casino, tipo) %>%
+  View()
+
+#Vincolo 3: categorie di macchine non nulle [questo vincolo potrebbe essere superfluo dopo l'inserimento del Vincolo 4]
 
 set %>%
   group_by(Casino, tipo) %>%
   summarise(n = n(), macchine = sum(numero_macchine)) %>%
   View()
+
 #almeno una macchina per categoria in ciascun casino! onesto -> questione di gusti dei clienti!
 
-tipo = unique(set$tipo)
-casino = unique(set$Casino)
-a2 = c()
-
-for (t in 1:2) {
-  for (i in 1:14) {
-      a2 = append(a2, ifelse(set$tipo == tipo[i] & set$Casino == casino[t], 1, 0))
+Vincolo3 = function(df){
+  "funzione per costruire il vincolo 3"
+  x = unique(df$tipo)
+  y = unique(df$Casino)
+  a = c()
+  for (t in 1:length(y)) {
+    for (i in 1:length(x)) {
+      a = append(a, ifelse(df$tipo == x[i] & df$Casino == y[t], 1, 0))
     }
   }
+  A = matrix(a,28,78, byrow = T)
+  A = A[c(1:13,15:28),] #la riga 14 è vuota siccome nel casino Aries ci sono 13 categorie e non 14 -> si rimuove
+  return(A)
+}
 
+#Vincolo 3
+A2 = Vincolo3(set)
 
-A2 = matrix(a2,28,78, byrow = T) #dovrebbe esserci una riga di tutti 0; presumo sia la 14 perchè in aries ci sono 13 e non 14 categorie
-
-#check
-all(rep(0,78) == A2[14,0]) #yes -> da rimuovere
-
-#c'è un errore nella costruzione della matrice A2 -> forse no proviamo!    
-A2 = A2[c(1:13,15:28),]
+#Vincolo 1 e Vincolo 2 (Matrice A)
 A = rbind(A, A2)
 
-b = c(849, 230, #vincoli 1
-      rep(c(round(0.2*849), round(0.3*849)), 4), rep(c(round(0.15*230), round(0.4*230)), 4), #vincoli 2
-      rep(1,27)) #vincoli 3
+#Vettore B
+b = c(b,
+      rep(1,27)) #mettiamo 1 simbolicamente [ha poco senso avere una categoria con una sola macchina
 
-constraints = c("<=", "<=",
-                rep(c(">=", "<="), 8),
+constraints = c(constraints,
                 rep(">=", 27))
 
+#Risultato 3
 sol <- solveLP(f_obj, b, A, maximum = TRUE, constraints)
 summary(sol)
 
 shadow_price = sol$con
-x = set[which(sol$solution != 0),] %>%
-  arrange(Casino, tipo) #soluzione sul dataset!
+
+#risultato sul dataset
+set[which(sol$solution != 0),] %>%
+  arrange(Casino, tipo) %>%
+  View()
 
 #noi però stiamo ottimizzando sul numero di macchine per categoria perciò forse avrebbe più senso avere:
 #tutte le categorie attive in settembre;
 #più macchine per categoria altrimenti come fanno a giocare i tizi?
 
-#forse le macchine cin più giocate sono quelle più utilizzate?
-
-
+#forse le macchine con più giocate sono quelle più utilizzate?
 ggplot(data=set, aes(x=set$giocate_totali, y = set$numero_macchine)) +
+  geom_point(alpha=.5, size=3, color="#880011") +
+  ggtitle("a settembre, più macchine ci sono più si gioca? Si") +
+  labs(x="Giocate Totali", y="Numero di Macchine") +
+  theme_classic() #si
+
+cor(set$giocate_totali,set$numero_macchine) #0.97 ho scoperto l'acqua calda 
+
+#ma è vero per per tutto l'anno?
+ggplot(data=tot, aes(x=tot$giocate_totali, y = tot$numero_macchine)) +
   geom_point(alpha=.5, size=3, color="#880011") +
   ggtitle("Più macchine ci sono più si gioca? Si") +
   labs(x="Giocate Totali", y="Numero di Macchine") +
   theme_classic() #si
 
+cor(tot$giocate_totali, tot$numero_macchine) #0.93 ho scoperto l'acqua calda 
+
+#forse il numero di giocate dipende dal wage minimo
 ggplot(data=set, aes(x= set$Denomination, y=set$giocate_unitarie)) +
   geom_point(alpha=.5, size=3, color="#880011") +
   ggtitle("Più monete piccole puoi inserire più giochi? No!") +
   labs(x="Wage minimo", y="giocate unitarie") +
   theme_classic() #no
+
+cor(set$Denomination, set$giocate_unitarie) #no dipendenza lineare
+
+#leanciare per conferma. Dopo aver fatto la discretizzazione delle giocate ho potuto fare un chi test più veritiero [codice dopo]
+# #forse il numero di giocate dipende dal tipo di macchina
+# ggplot(data=set, aes(x= set$MachineType, y=set$giocate_unitarie)) +
+#   geom_point(alpha=.5, size=3, color="#880011") +
+#   ggtitle("I tipi di macchina influenzano le giocate? No!") +
+#   labs(x="Wage minimo", y="giocate unitarie") +
+#   theme_classic() #mmm no
+# 
+# #Volevo testare la dipendenza: ora non so se il Chi quadro sia adatto (non ho 2 categoriali)
+# #ho usato il modello lineare per testare la significatività di un tipo rispetto all'altro
+# table(set$MachineType, set$giocate_unitarie)
+# chisq.test(set$MachineType, set$giocate_unitarie)
+# m = lm (giocate_unitarie ~ MachineType, data = set)
+# summary(m) #no significativo
+# 
+# #forse il numero di giocate dipende dalla categoria di macchina
+# ggplot(data=set, aes(x= set$tipo, y=set$giocate_unitarie)) +
+#   geom_point(alpha=.5, size=3, color="#880011") +
+#   ggtitle("La categoria della macchina influenza la giocate? No!") +
+#   labs(x="Wage minimo", y="giocate unitarie") +
+#   theme_classic() #mmm no
+
+#stesso discorso di sopra
+chisq.test(set$tipo, set$giocate_unitarie)
+m1 = lm (giocate_unitarie ~ tipo, data = set)
+summary(m1) #difficile interpretazione 
 
 #potremmo mettere un vincolo che si basi sulle giocate unitarie;
 #se le giocate unitarie sono alte -> preferenza dei consumatori -> numero macchine deve essere >= di una certa soglia;
@@ -523,16 +595,98 @@ ggplot(data=set, aes(x= set$Denomination, y=set$giocate_unitarie)) +
 
 set$Casino = as.factor(set$Casino)
 
-ggplot(set, aes(x=Casino, y=giocate_unitarie, fill = Casino)) + 
+p = ggplot(set, aes(x=Casino, y=giocate_unitarie, fill = Casino)) + 
   geom_boxplot(outlier.colour="red", outlier.shape=8,
                outlier.size=4) +
   labs(y = "Giocate unitarie") +
-  ggtitle("Distribuzione giocate unitarie") +
+  ggtitle("Distribuzione giocate unitarie settembre") +
   geom_jitter(shape=16, position=position_jitter(0.2)) +
   theme_dark()
+
+data_summary <- function(x) {
+  "funzione per mettere intervallo di confidenza attorno alla media"
+  m = mean(x)
+  ymin = t.test(x)$conf.int[1]
+  ymax = t.test(x)$conf.int[2]
+  return(c(y=m,ymin=ymin,ymax=ymax))
+}
+
+p + stat_summary(fun.data = data_summary, 
+                 geom="pointrange",
+                 color="red", 
+                 size = 0.7)
+
+t.test(set$giocate_unitarie ~ set$Casino)
+#distribuzioni non significativamente diverse quindi posso usare la distribuzione congiunta per fare inserire le soglie
   
-#per piazzare le soglie potremmo usare i quartili
+summary(set$giocate_unitarie)
 
-summary(set[set$Casino == "Aries", "giocate_unitarie"])
-summary(set[set$Casino == "Libra", "giocate_unitarie"])
+help("discretize_df")
+#dataframe in input per la discretizzaztione;
+#si può usare "discretize_get_bins" ma non permette il settaggio con i quantili
+#il risultato sarebbe lo stesso daframe con valori chiaramenti diversi
+d_bins = data_frame(variable = "giocate_unitarie",
+                cuts = paste0("39788","|","79420","|","119536","|","inf"))
+set_discrettizato = discretize_df(set,
+                                  data_bins = d_bins,
+                                  stringsAsFactors = T)
+#ora raggruppo per giocate_unitarie che sono state discretizzate e calcolo alcune statistiche per decidere la soglia
+set_discrettizato %>% 
+  group_by(giocate_unitarie) %>%
+  summarise(media_macchine = mean(numero_macchine),
+            massimo_macchine = max(numero_macchine),
+            mediana_macchine = median(numero_macchine)) %>%
+  View()
+#utilizziamo la media tanto per cambiare
 
+#ora che abbiamo raggruppato in categorie le giocate, possiamo valutare se quest'ultilme dipendono dalla categoria
+#si potrebbere dedurre una certa preferenza dei consumatori
+
+chisq.test(set$giocate_unitarie, set$tipo) 
+#p_value >= 0.05, si accetta l'ipotesi nulla di indipendenza: la categoria di macchina non influenza le giocate unitarie
+
+#possiamo solamente dedurre l'attitudine dei clienti del casino ad essere più propensi a giocare se ci sono più macchine
+#HP: più macchine ci sono, più il casino è "famoso" e più giocatori arrivano [almeno per settembre]
+
+#Vincolo4
+Vincolo4 = function(df){
+  "funzione per costruire il vincolo 3"
+  a = c()
+  for (i in df$giocate_unitarie) {
+      a = append()
+    }
+      a = append(a, ifelse(df$tipo == x[i] & df$Casino == y[t], 1, 0))
+    }
+  A = matrix(a,28,78, byrow = T)
+  A = A[c(1:13,15:28),] #la riga 14 è vuota siccome nel casino Aries ci sono 13 categorie e non 14 -> si rimuove
+  return(A)
+
+
+a = c()
+x = quantile(set$giocate_unitarie)
+x = x[2:5]
+for (a in x) {
+  for (i in set$giocate_unitarie) {
+    if (a == x[1]) {
+      a = append(a, ifelse(i <= a, 1, 0))
+    }
+    else { 
+      if (a == x[2]) {
+        a = append(a, ifelse(i > a & i <= x[3]), 1, 0)
+        }
+      else {
+        if (a == x[3]) {
+          a = append(a, ifelse(i > a & i<= x[4], 1, 0))
+          }
+        else {
+          a = append(a, ifelse(i > a, 1, 0))
+          }
+        }
+      }
+    }
+  }
+#da sistemare!!!!!!!!!!
+
+library(caret)
+dummies = predict(dummyVars(~ giocate_unitarie, data = set_discrettizato), newdata = set_discrettizato)
+dummies = t(dummies)
