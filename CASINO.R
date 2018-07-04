@@ -486,54 +486,56 @@ set[which(sol$solution != 0),] %>%
   arrange(Casino, tipo) %>%
   View()
 
-#Vincolo 3: categorie di macchine non nulle [questo vincolo potrebbe essere superfluo dopo l'inserimento del Vincolo 4]
-
-set %>%
-  group_by(Casino, tipo) %>%
-  summarise(n = n(), macchine = sum(numero_macchine)) %>%
-  View()
-
-#almeno una macchina per categoria in ciascun casino! onesto -> questione di gusti dei clienti!
-
-Vincolo3 = function(df){
-  "funzione per costruire il vincolo 3"
-  x = unique(df$tipo)
-  y = unique(df$Casino)
-  a = c()
-  for (t in 1:length(y)) {
-    for (i in 1:length(x)) {
-      a = append(a, ifelse(df$tipo == x[i] & df$Casino == y[t], 1, 0))
-    }
-  }
-  A = matrix(a,28,78, byrow = T)
-  A = A[c(1:13,15:28),] #la riga 14 è vuota siccome nel casino Aries ci sono 13 categorie e non 14 -> si rimuove
-  return(A)
-}
-
-#Vincolo 3
-A2 = Vincolo3(set)
-
-#Vincolo 1 e Vincolo 2 (Matrice A)
-A = rbind(A, A2)
-
-#Vettore B
-b = c(b,
-      rep(1,27)) #mettiamo 1 simbolicamente [ha poco senso avere una categoria con una sola macchina
-
-constraints = c(constraints,
-                rep(">=", 27))
-
-#Risultato 3
-sol <- solveLP(f_obj, b, A, maximum = TRUE, constraints)
-summary(sol)
-
-shadow_price = sol$con
-
-#risultato sul dataset
-set[which(sol$solution != 0),] %>%
-  arrange(Casino, tipo) %>%
-  View()
-
+######################################################################################################################
+#SE SI RISOLVE IL VINCOLO 4 QUESTO SECONDO ME DIVENTA SUPERFLUO
+# #Vincolo 3: categorie di macchine non nulle [questo vincolo potrebbe essere superfluo dopo l'inserimento del Vincolo 4]
+# 
+# set %>%
+#   group_by(Casino, tipo) %>%
+#   summarise(n = n(), macchine = sum(numero_macchine)) %>%
+#   View()
+# 
+# #almeno una macchina per categoria in ciascun casino! onesto -> questione di gusti dei clienti!
+# 
+# Vincolo3 = function(df){
+#   "funzione per costruire il vincolo 3"
+#   x = unique(df$tipo)
+#   y = unique(df$Casino)
+#   a = c()
+#   for (t in 1:length(y)) {
+#     for (i in 1:length(x)) {
+#       a = append(a, ifelse(df$tipo == x[i] & df$Casino == y[t], 1, 0))
+#     }
+#   }
+#   A = matrix(a,28,78, byrow = T)
+#   A = A[c(1:13,15:28),] #la riga 14 è vuota siccome nel casino Aries ci sono 13 categorie e non 14 -> si rimuove
+#   return(A)
+# }
+# 
+# #Vincolo 3
+# A2 = Vincolo3(set)
+# 
+# #Vincolo 1 e Vincolo 2 (Matrice A)
+# A = rbind(A, A2)
+# 
+# #Vettore B
+# b = c(b,
+#       rep(1,27)) #mettiamo 1 simbolicamente [ha poco senso avere una categoria con una sola macchina
+# 
+# constraints = c(constraints,
+#                 rep(">=", 27))
+# 
+# #Risultato 3
+# sol <- solveLP(f_obj, b, A, maximum = TRUE, constraints)
+# summary(sol)
+# 
+# shadow_price = sol$con
+# 
+# #risultato sul dataset
+# set[which(sol$solution != 0),] %>%
+#   arrange(Casino, tipo) %>%
+#   View()
+#########################################################################################################################
 #noi però stiamo ottimizzando sul numero di macchine per categoria perciò forse avrebbe più senso avere:
 #tutte le categorie attive in settembre;
 #più macchine per categoria altrimenti come fanno a giocare i tizi?
@@ -631,77 +633,99 @@ p + stat_summary(fun.data = data_summary,
                  size = 0.7)
 
 t.test(set$giocate_totali ~ set$Casino)
-#distribuzioni  significativamente diverse: non posso usare la congiunta
+#distribuzioni significativamente diverse: non posso usare la congiunta
   
 summary(set[set$Casino == "Aries", "giocate_totali"])
 summary(set[set$Casino == "Libra", "giocate_totali"])
 
 help("discretize_df")
+
 #dataframe in input per la discretizzaztione;
-#si può usare "discretize_get_bins" ma non permette il settaggio con i quantili
+#si può usare il comdando "discretize_get_bins" ma non permette il settaggio con i quantili
 #il risultato sarebbe lo stesso daframe con valori chiaramenti diversi
+
 d_bins = data_frame(variable = "giocate_totali",
-                cuts = paste0("122810","|","601962","|","1665180","|","inf"))
+                cuts = paste0("122810","|","601962","|","1665180","|","inf")) #da summary precedente
 aries_discrettizato = discretize_df(set %>% filter(Casino=="Aries"),
                                   data_bins = d_bins,
                                   stringsAsFactors = T)
+
 d_bins1 = data_frame(variable = "giocate_totali",
-                    cuts = paste0("80424","|","209740","|","617728","|","inf"))
+                    cuts = paste0("80424","|","209740","|","617728","|","inf")) #da summary precedente
 libra_discrettizato = discretize_df(set %>% filter(Casino=="Libra"),
                                     data_bins = d_bins1,
                                     stringsAsFactors = T)
 set_discretizzato = rbind(aries_discrettizato, libra_discrettizato)
 
+set$giocate_totali_discr = set_discretizzato$giocate_totali
+set = set[c(1:9,13,10:12)] #riordino colonne 
+
 #ora raggruppo per giocate_unitarie che sono state discretizzate e calcolo alcune statistiche per decidere la soglia
-set_discretizzato %>% 
-  group_by(giocate_totali, Casino) %>%
+set %>% 
+  group_by(giocate_totali_discr, Casino) %>%
   summarise(media_macchine = mean(numero_macchine),
             massimo_macchine = max(numero_macchine),
             mediana_macchine = median(numero_macchine)) %>%
   arrange(Casino) %>%
   View()
-
 #utilizziamo il massimo numero di macchine
 
+#PROBLEMONE ENORME: SE USO LA BINARIZZAZIONE SULLE NUOVE VARIABILI CATEGORICHE [QUELLE BINARIZZATE] PURTROPPO MI SEGNA 1
+#LADDOVE C'E' LA CATEGORIA: NOI VORREMMO AVERE 1 SE QUELLA VARIABILE APPARTIENE ALLA CATEGORIA E ZERO ALTROVE, IN MODO
+#DA AVERE 78 VARIABILI DOVE SOLO IN UN CAMPO è 1 E NEI RESTANTI è 0: se non hai capito chiamami
+#se lanci il codice sottostante lo capisci meglio comunque [il codice non ritorna quello che vogliamo ma lo lascio acceso
+#per far capire]
 Vincolo4 = function(df) {
-  A = predict(dummyVars(~ giocate_totali, data = df), newdata = df)
+  A = predict(dummyVars(~ giocate_totali_disc, data = df), newdata = df)
   A = t(A)
   return(A)
 }
 
-test = predict(dummyVars(~ giocate_totali, data = set_discretizzato), newdata = set_discretizzato)
-
-
 #Vincolo 4
-A2 = Vincolo4(set_discretizzato)
+A2 = Vincolo4(set)
 
-#Sistemo la matrice in accordo con la predisposizione del vincolo
-A2 = A2[rep(seq_len(nrow(A2)), each= 2),]
-A2 = A2[c(1:7,9:15),]
+#########
+#PROVA COMO PER RISOLVERE IL PROBLEMA
+########
 
-A = rbind(A, A2)
+#1 creo una mtrice diagonale 78 x 78: si adatta alla selezione delle nostre variabili
+prova = diag(78)
+prova = cbind(prova, as.character(set$giocate_totali_discr))
+#2replico ciascuna riga a priori
+prova = prova[rep(seq_len(nrow(prova)), each= 2),]
+#3 elimino le righe che non dovrebbero essere doppie poichè hanno solamente un lower bound
 
-#Vettore B: aggiungo i valori massimi di macchine per categoria di giocate
-b = c(b,
-      1,9,9,22,22,26,101,
-      1,3,3,5,5,9,34)
-constraints = c(constraints,
-                ">=","<", ">=", "<", ">=", "<", ">=",
-                ">=","<", ">=", "<", ">=", "<", ">="
-                )
-sol <- solveLP(f_obj, b, A, maximum = TRUE, constraints)
-summary(sol)
+#Altro problema: siccome vogliamo fissare dei lower e dei upper bound, la matrice deve essere sdobbiata ricordi? bene teoricamente
+#non tutte le righe andrebbero raddoppiate ma solo quelle che hanno vincoli sia upper che lower, ergo quelle tutte ad esclusione
+#dell'ultima classe (valore, inf) sia per LIBRA che per ARIES
 
-shadow_price = sol$con
+#####################################
+# Non va bene perchè è sbagliato quello sopra 
+# #Sistemo la matrice in accordo con la predisposizione del vincolo [raddoppio le righe che hanno sia lower che gli upper]
+# A2 = A2[rep(seq_len(nrow(A2)), each= 2),]
+# A2 = A2[c(1:7,9:15),]
+# A = rbind(A, A2)
+# #Vettore B: aggiungo i valori massimi di macchine per categoria di giocate
+# b = c(b,
+#       1,9,9,22,22,26,101,
+#       1,3,3,5,5,9,34)
+# constraints = c(constraints,
+#                 ">=","<", ">=", "<", ">=", "<", ">=",
+#                 ">=","<", ">=", "<", ">=", "<", ">="
+#                 )
+# sol <- solveLP(f_obj, b, A, maximum = TRUE, constraints)
+# summary(sol)
+# 
+# shadow_price = sol$con
+# 
+# #risultato sul dataset
+# set[which(sol$solution != 0),] %>%
+#   arrange(Casino, tipo) %>%
+#   View()
+################################################################################################
 
-#risultato sul dataset
-set[which(sol$solution != 0),] %>%
-  arrange(Casino, tipo) %>%
-  View()
 
-#Come fa a non coinvolegere tutte le variabili??????
-
-#CONSIDERAZIONE PER GABRI
+#CONSIDERAZIONE SUCCESSIVA
 #ora che abbiamo raggruppato in categorie le giocate, possiamo valutare se quest'ultilme dipendono dalla categoria
 #si potrebbere dedurre una certa preferenza dei consumatori
 
