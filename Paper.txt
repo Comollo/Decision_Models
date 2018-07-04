@@ -9,3 +9,7 @@ for deciding the slot mix operators may be limiting their casino floor's potenti
 [Denominatio + MachineType]
 
 -esistono macchine identiche con numero di machine diverso! 
+
+-Considerazione circa il grafico "numero macchine e ricavi 1/2": potrebbe essere un fatto di gusti dei consumatori. A settembre vanno tanti giocatori ma che spendono poco quindi
+ci sono tante macchine ma i ricavi unitari per macchina sono bassi. A marzo ci vanno pochi giocatori ma che spendono molto, il casino tiene poche macchine ma i ricavi unitari per
+macchina sono alti.
