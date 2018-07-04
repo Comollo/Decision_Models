@@ -369,60 +369,86 @@ set = tot %>%
 
 set = as.data.frame(set)
 
-f_obj = round(set$ricavo_per_giocata) #ricavi unitari = da MAX
+f_obj = round(set$ricavo_unitario) #ricavi unitari = da MAX
 
-#quante macchine ci sono al mese nei 2 casino? 
+#quante macchine ci sono ogni mese nei 2 casino? 
 tot %>% 
   group_by(Casino, Month) %>%
   summarise(n_macchine = sum(numero_macchine)) %>%
   arrange(Month) %>%
   View()
 
-#costruzione vincolo
-ai = c(ifelse(set$Casino == "Aries", 1, 0),
-       ifelse(set$Casino == "Libra", 1, 0))
-A = matrix(ai,
+#costruzione vincolo 1: numero massimo di macchine per casino nel mese di settembre 
+
+#Matrice A:
+#1) creo un vettore di 1 e di 0 -> dove le variabilid decisionali sono attive varrà 1 altrimenti 0;
+#2) popolo la matrice A (modello lineare) attraverso il vettore creato
+
+#1) vettore di supporto
+a = c(ifelse(set$Casino == "Aries", 1, 0), #Voglio tutte le variabili decisionali riferite ad ARIES
+      ifelse(set$Casino == "Libra", 1, 0)) #VOglio tutte le variabili decisionali riferite a LIBRA
+
+#2) Matrice A del modello
+A = matrix(a,
            2,
            78,
-           byrow = T)#Matrice A del modello, 1 se valore attivo, 0 altrimenti 
+           byrow = T)
 
-b = c(849, 230) #upper and lower bound
+#Vettore B del modello lineare
+b = c(849, 230) #upper bound
 constraints = c("<=", "<=") 
 
 library(linprog)
-sol <- solveLP(f_obj, b, A, maximum = TRUE, constraints)
+sol <- solveLP(f_obj, b, A, maximum = TRUE, constraints) #solver 
+
+#risultato 1
 summary(sol)
+shadow_price = sol$con
+#Avendo solo questo vincolo le macchine vengo piazzate dove il ricavo unitario è massimo. Mi sembra ragionevole
+#E' chiaro che occorre tenere in considerazione altri vincoli.
 
-shadow_price = sol$con #solo con questo vincolo le macchine vengo piazzate dove il ricavo unitario è massimo
+#Vincolo 2: proporzione macchine in ciascuna sezione dei 2 Casino
 
-#proviamo ad aggiungere qualche vincolo
-
-#la proporzione di macchine in ciascuna sezione deve essere tra la percentuale minima e quella massima
 set %>%
   group_by(Casino, Section) %>%
   summarise(Num_macchine = sum(numero_macchine)) %>%
   mutate(prop_per_mese = round(Num_macchine / sum(Num_macchine), 2)) %>%
-  View()#il mutate perde un livello dopo il summarise
+  View()
 
+#Per Aries ciascuna sezione deve avere un numero di macchine: 0.2 >= x <= 0.3
+#Per Libra ciascuna sezione deve avere un numero di macchine: 0.15 >= x <= 0.35
+#Si tratta di valori arbitrari dedotti dai dati
 
-section = unique(set$Section)
-casino = unique(set$Casino)
-a1 = c()
-
-for (t in 1:2) {
-  for (i in 1:4) {
-    for (k in 1:2) {
-      a1 = append(a1, ifelse(set$Section == section[i] & set$Casino == casino[t], 1, 0))
+Vincolo2 = function(df){
+  "funzione per costruire il vincolo 2"
+  s = unique(df$Section)
+  c = unique(df$Casino)
+  a = c()
+  for (t in 1:2) {
+    for (i in 1:4) {
+      for (k in 1:2) {
+        a = append(a, ifelse(df$Section == s[i] & df$Casino == c[t], 1, 0))
+      }
     }
   }
+  A = matrix(a,16,78, byrow = T)
+  return(A)
 }
 
-A1 = matrix(a1,16,78, byrow = T)
+#Vincolo 2  
+A1 = Vincolo2(set) 
+
+#Vincolo 1 e Vincolo 2 (Matrice A)
 A = rbind(A, A1)
 
-b = c(849, 230, rep(c(round(0.2*849), round(0.3*849)), 4), rep(c(round(0.15*230), round(0.4*230)), 4))
-constraints = c("<=", "<=", rep(c(">=", "<="), 8))
+#Vettore B aggiornato 
+b = c(b,
+      rep(c(round(0.2*849), round(0.3*849)), 4), rep(c(round(0.15*230), round(0.35*230)), 4))
 
+constraints = c(constraints,
+                rep(c(">=", "<="), 8))
+
+#Risultato 2
 sol <- solveLP(f_obj, b, A, maximum = TRUE, constraints)
 summary(sol)
 
