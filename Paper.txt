@@ -13,3 +13,31 @@ for deciding the slot mix operators may be limiting their casino floor's potenti
 -Considerazione circa il grafico "numero macchine e ricavi 1/2": potrebbe essere un fatto di gusti dei consumatori. A settembre vanno tanti giocatori ma che spendono poco quindi
 ci sono tante macchine ma i ricavi unitari per macchina sono bassi. A marzo ci vanno pochi giocatori ma che spendono molto, il casino tiene poche macchine ma i ricavi unitari per
 macchina sono alti.
+
+#####################################################################################################################################################################################
+NOTE PER METODOLOGIE
+
+- A seguito di una approfondita esplorazione [si veda immagini] siamo arrivati alla conclusione che il modello migliore per ottimizzare il risultato di LDE sia uno che, oltre
+a tenere conto della suddivisione in Casino e poi in sezioni, tenesse in considerazione anche l'aspetto temporale. La prima strategia di modellazione prevedeva
+un modello macro che con una sola funzione obiettivo permettesse di individuare "il numero di macchine" [qua penso si sia già spiegato che troviamo il numero di macchine 
+di una delle categorie create] da inserire in una specifica sezione, di un casino, in un determinato mese.
+In questo modo il numero di variabili decisionali sarebbero stato elevato (~1000) e il modello nel suo complesso avrebbe perso enormemente di interpretabilità [farei notare
+che la scelta di usare la PL è dettata soprattutto dall'interpretabilità dei risultati].
+Abbiamo quindi optato per un modello singolo per ogni mese in modo da:
+1) considerare comunque l'aspetto temporale: si individua una configurazione per ogni mese;
+2) incrementare fortemente l'interpretabilità dei risultati e di conseguenza i consigli da impartire al manager del casino.
+
+- il modello costituito quindi è volto a MAX i ricavi unitari mensili attraverso il numero di macchine [IO UNA BELLA FORMULA LA METTEREI].
+I ricavi unitari sono calcolati non solo tenendo in considerazione le categorie presenti in un determinato mese, ma valutando anche l'aspetto sezionale del casino: Due macchine
+della stessa categoria possono avere ricavi unitari diversi se posizionate in sezioni diverse. Come abbiamo visto l'allocamento di una macchina in una sezione piuttosto che in un'altra
+influisce il ricavo della macchina stessa: abbiamo voluto catturare anche questo aspetto.
+
+-I vincoli sono stati impostati affinchè il risultato finale fosse coerente con la configurazione analizzata ogni mese:
+
+per ogni mese i vincoli sono:
+1 VINCOLO SUL NUMERO DI MACCHINE NEI CASINO: numero di macchine di ciascun casino <= al numero totale di macchine presenti in quel mese per i due Casino;
+2 VINCOLO SULLE SEZIONI: ciascuna sezione deve avere un numero di macchine entro una soglia percentuale del totale [esempio];
+3 VINCOLO SULLE MACCHINE STESSE E SULLE PREFERENZE [il nome è da cambiare]: siccome volevamo intercettare, almeno simbolicamente quale fossero le preferenze dei clienti di LDE,
+abbiamo pensato di utilizzare l'informazione relativa alle giocate totali ed in particolare la relazione esistente tra queste ed il numero di macchine -> Più macchine ci sono più 
+si gioca, ergo supponiamo che le macchine con più giocate totali e quindi più numerose non siano state messe lì a caso ma poichè "preferite" dalla clientela in un determinato periodo.
+
