@@ -1,0 +1,158 @@
+---
+title: "Untitled"
+author: "Adreose E, Caldara G, COmotto F, Scardovelli M"
+date: "09 luglio 2018"
+output: html_document
+---
+
+```{r, include=FALSE}
+library(dplyr)
+library(lubridate)
+library(funModeling)
+library(ggplot2)
+options(scipen = 999)
+```
+
+#Lucky Duck Entertainment dataset
+
+```{r}
+slot <- readxl::read_excel("Lucky Duck Entertainment revenue 2013.xls", na = c(".", "NA", "NaN"))
+str(slot)
+```
+
+Status Dataframe
+```{r}
+status = df_status(slot, print_results = F)
+summary(slot$Month) #12 month
+knitr::kable(status)
+```
+
+#Categorization
+
+Create dataset to be used for further analysis, i.e. aggregate slots by categories (MachineType+Denomination) for each month and section in each casino.
+
+```{r}
+df <- slot %>%
+  group_by(Month, Casino, Section, MachineType, Denomination) %>%
+  summarise(numero_macchine    = sum(NoMachines),
+            ricavi_totali      = sum(GrossRevenue),
+            ricavo_unitario    = ricavi_totali/numero_macchine,
+            giocate_totali     = sum(Plays),
+            giocate_unitarie   = round(giocate_totali/numero_macchine),
+            ricavo_per_giocata = ricavi_totali/giocate_totali) %>%
+  arrange(Month, Section, MachineType, Denomination) %>%
+  mutate(tipo = paste0(MachineType, "_", Denomination)) 
+head(df)
+```
+
+How many categories are there in LDE?
+```{r}
+df %>%
+  group_by(tipo) %>%
+  summarise(n = n()) %>%
+  View()
+#max 14
+```
+
+How many in each Section of the two Casinò?
+```{r}
+df %>% group_by(Casino, Section, Month) %>%
+  summarise(n = n()) %>%
+  arrange(Casino, Section) %>%
+  group_by(Casino, Section) %>%
+  summarise(Numero_medio_categorie = mean(n), Varianza_numero_categorie = sqrt(var(n))) %>%
+  View()
+```
+
+How many in each month?
+```{r}
+df %>% group_by(Casino, Section, Month) %>%
+  summarise(n = n()) %>%
+  arrange(Casino, Section) %>%
+  group_by(Month) %>%
+  summarise(Numero_medio_categorie = mean(n), Varianza_numero_categorie = sqrt(var(n))) %>%
+  View()
+```
+
+#Data Visualization (Exploration)
+We created ad hoc dataset to plot important details
+
+First dimension: Time
+```{r}
+ricavi_mese = df %>% 
+  group_by(Month) %>%
+  summarise(ricavo_medio_totale = mean(ricavi_totali),
+            ricavo_medio_unitario = mean(ricavo_unitario),
+            numero_macchine_medie = mean(numero_macchine),
+            varianza_macchine = sqrt(var(numero_macchine)))
+
+ggplot(data=ricavi_mese, aes(x=ricavi_mese$Month, y = ricavi_mese$ricavo_medio_unitario)) +
+  geom_line(alpha=.5, size=1, color="#880011") +
+  ggtitle("Ricavi per Mese di LDE") +
+  labs(x="Mese", y="Ricavo medio unitario") +
+  theme_classic()
+
+ricavi_mese$Month = as.factor(ricavi_mese$Month)
+
+ggplot(data=ricavi_mese, aes(x=ricavi_mese$numero_macchine_medie,
+                             y=ricavi_mese$ricavo_medio_totale,
+                             colour = Month)) +
+  geom_point(alpha=.4, size=4) +
+  ggtitle("Più macchine hai più guadagni? In linea di massima SI!") +
+  labs(x="Numero medio macchine", y="Ricavi medi totali") + 
+  theme_minimal()
+
+ggplot(data=ricavi_mese, aes(x=ricavi_mese$numero_macchine_medie,
+                             y=ricavi_mese$ricavo_medio_unitario,
+                             colour = Month)) +
+  geom_point(alpha=.4, size=4) +
+  ggtitle("Tante macchine non significa ricavi unitari elevati!") +
+  labs(x="Numero medio macchine", y="Ricavi medi unitari") + 
+  theme_minimal()
+```
+ 
+Second Dimension: Category
+```{r}
+ricavi_categoria = df %>%
+  group_by(Denomination, MachineType) %>%
+  summarise(ricavo_medio_unitario = mean(ricavo_unitario)) %>%
+  mutate(type = paste0(Denomination,sep = "_", MachineType))
+
+ggplot(data=ricavi_categoria, aes(x=ricavi_categoria$type, y = sort(ricavi_categoria$ricavo_medio_unitario))) +
+  geom_bar(stat="identity", fill = "firebrick3" ) +
+  ggtitle("Ricavi per Categoria di LDE") +
+  labs(x="Categoria", y="Ricavo medio unitario") +
+  theme_classic() 
+
+```
+
+Third dimension: Section
+
+```{r}
+ricavi_sezione = df %>% 
+  group_by(Section) %>%
+  summarise(ricavo_medio_unitario = mean(ricavo_unitario))
+
+ggplot(data=ricavi_sezione, aes(x=ricavi_sezione$Section, y = sort(ricavi_sezione$ricavo_medio_unitario))) +
+  geom_bar(stat="identity", fill = "forestgreen", width = 0.4 ) +
+  geom_text(aes(label = round(ricavi_sezione$ricavo_medio_unitario)), nudge_y = 700 ) +
+  ggtitle("Ricavi per Sezione di LDE") +
+  labs(x="Sezione", y="Ricavo medio unitario") +
+  theme_classic() 
+
+```
+
+Fourth dimension: Casino
+
+```{r}
+ricavi_casino = df %>% 
+  group_by(Casino) %>%
+  summarise(ricavo_medio_unitario = mean(ricavo_unitario))
+
+ggplot(data=ricavi_casino, aes(x=ricavi_casino$Casino, y = ricavi_casino$ricavo_medio_unitario)) +
+  geom_bar(stat="identity", fill = "blue", width = 0.4 ) +
+  geom_text(aes(label = round(ricavi_casino$ricavo_medio_unitario)), nudge_y = 700 ) +
+  ggtitle("Ricavi per Casino di LDE") +
+  labs(x="Casino", y="Ricavo medio unitario") +
+  theme_classic()
+```
