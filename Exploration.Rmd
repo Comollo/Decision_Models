@@ -35,7 +35,6 @@ knitr::kable(status)
 ```
 
 ##Categorization
-
 Creazione del dataset che verrà utilizzato per i 12 modelli. L'aggregazione avviene per categoria (MachineType+Denomination) per ogni mese in ogni sezione dei 2 Casinò.
 
 
@@ -50,7 +49,7 @@ df <- slot %>%
             ricavo_per_giocata = ricavi_totali/giocate_totali) %>%
   arrange(Month, Section, MachineType, Denomination) %>%
   mutate(tipo = paste0(MachineType, "_", Denomination)) 
-knitr::kable(head(df))
+head(df)
 ```
 
 A seguito del processo di aggregazione, qual è il numero massimo di categorie per LDE?
@@ -128,7 +127,7 @@ ggplot(data=ricavi_mese, aes(x=ricavi_mese$numero_macchine_medie,
                              y=ricavi_mese$ricavo_medio_totale,
                              colour = Month)) +
   geom_point(alpha=.4, size=4) +
-  ggtitle("PiÃ¹ macchine hai piÃ¹ guadagni? In linea di massima SI!") +
+  ggtitle("Più macchine hai più guadagni? In linea di massima SI!") +
   labs(x="Numero medio macchine", y="Ricavi medi totali") + 
   theme_minimal()
 
@@ -189,6 +188,7 @@ Dato che i ricavi unitari cambiano in funzione delle 4 dimensioni analizzate pos
 
 ##Vincolo numero 3: Motivazione
 
+Iniziamo considerando il Dataset intero
 ```{r}
 ggplot(data=df, aes(x=df$giocate_totali, y = df$numero_macchine)) +
   geom_point(alpha=.5, size=3, color="#880011") +
@@ -209,5 +209,53 @@ for(i in 1:12) {
 }
 correlazione
 ```
+Si!  
+Data l'elevata correlazione tra le due variabili, vogliamo inserire un vincolo che tenga conto di questo aspetto. L'assunto è che le categorie con maggior numero di macchine siano anche quelle che ottengono più giocate in un dato mese, ergo sono quelle "preferite" dalla clientela. Se alcune categorie hanno più macchine significa che il manager del Casinò ha constato che in quel periodo i frequentatori sono particolarmente interessati a quelle categorie.  
+Tuttavia per settare l'adeguato numero di macchine in funzione delle giocate occorre anche tenere in considerazione la diversa struttura dei due Casinò (Aries e Libra)
 
-Si!
+Iniziamo considerando il dataset intero
+```{r}
+df$Casino = as.factor(df$Casino)
+
+p = ggplot(df, aes(x=Casino, y=giocate_totali, fill = Casino)) + 
+  geom_boxplot(outlier.shape=8) +
+  labs(y = "Giocate totali") +
+  ggtitle("Distribuzione giocate totali") +
+  #geom_jitter(shape=16, position=position_jitter(0.2)) +
+  theme_dark()
+
+data_summary <- function(x) {
+  "funzione per mettere intervallo di confidenza attorno alla media"
+  m = mean(x)
+  ymin = t.test(x)$conf.int[1]
+  ymax = t.test(x)$conf.int[2]
+  return(c(y=m,ymin=ymin,ymax=ymax))
+}
+
+p + stat_summary(fun.data = data_summary, 
+                 geom="pointrange",
+                 color="red", 
+                 size = 0.7)
+
+t.test(df$giocate_totali ~ df$Casino) #distribuzioni significativamente diverse: non posso usare la congiunta
+```
+In generale è vero che la distribuzione delle giocate totali cambia a seconda del Casinò di riferimento.
+
+Ma è vero per ogni mese?
+```{r}
+test = list()
+for(i in 1:12) {
+  month = df %>% filter(Month == m[i])
+  x = t.test(month$giocate_totali ~ month$Casino)
+  test[as.character(m[i])] = x$p.value
+}
+test
+```
+Non sempre!  
+
+Siccome l'obiettivo finale è quello di determinare il numero di macchine in funzione delle giocate totali dobbiamo:  
+1) discretizzare la variabile giocate totali;  
+2) calcolare alcuni misure statistische relative ai gruppi formati in fase di discretizzazione e scegliere la misura per settare la soglia (lower & upper);  
+3) individuare il lower e l'upper bound sulla base dell'indice scelto.  
+
+Per creare gli intervalli legati alla discretizzazione abbiamo deciso di usare i quartili della variabile stessa. Fatta questa premessa, sarebbe un errore se fosse utilizza a priori la distribuzione congiunta della variabile "giocate totali": come si evince dall'output precedente, in più di un mese, i valori delle giocate totali nei due Casinò sono significativamente diversi. Per non incorrere nell'errore di creare intervalli errati si è deciso che per ciascun mese la variabile "giocate totali" verrà dicretizzata con intervalli differenti a seconda del Casinò di appartenenza.
