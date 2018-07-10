@@ -77,11 +77,7 @@ cat("Max number of categories for Aries:", nrow(Casino %>% filter(Casino == "Ari
 cat("Max number of categories for Libra:", nrow(Casino %>% filter(Casino == "Libra")))
 ```
 
-<<<<<<< HEAD
 Quante categorie (in media) ci sono in ciascuna Sezione dei 2 Casin�?
-=======
-How many in each Section of the two Casinò?
->>>>>>> 4af6c636e27e3c96e994aecc623505559b53c039
 ```{r}
 knitr::kable(df %>% group_by(Casino, Section, Month) %>%
   summarise(n = n()) %>%
@@ -99,24 +95,17 @@ knitr::kable(df %>% group_by(Casino, Section, Month) %>%
   summarise(Numero_medio_categorie = mean(n), Varianza_numero_categorie = sqrt(var(n))))
 ```
 
-<<<<<<< HEAD
 ##Data Visualization (Exploration)
 Al fine di sottolineare alcuni aspetti denotati in fase di esplorazione verranno creati dei dataset appositi.
-=======
-#Data Visualization (Exploration)
-We created ad hoc dataset to plot important details.
-
-Dal grafico sottostante, si evince come la sezione “Entrance” sia tendenzialmente legata a ricavi unitari più bassi rispetto alle altre sezioni, per ciascuna categoria. Inoltre si può notare come la tipologia di slot “reel” venga valorizzata se posizionata nella sezione “Boundary” del casinò, in quanto restituisce ricavi unitari maggiori. Per quanto riguarda le slot di tipo “video”, osserviamo i ricavi maggiori quando sono disposte nelle sezioni “Interior” e “RestaurantPlaza”. Le slot “vpoker” forniscono un ricavo unitario relativamente  basso ed equidistribuito per le diverse sezioni. Infine si può asserire che slot da cui si guadagna maggiormente sono quelle con denomination pari a 0.05 , 0.25 e 1.
 
 ```{r}
 tre <- df %>% select(Section, tipo, ricavo_unitario)
 ggplot(data = tre, aes(x = tre$tipo, y = tre$ricavo_unitario, colour = tre$Section)) +
   geom_point( size=4) +
-  labs(x="Categoria", y="Guadagno unitario", colour = "Sezione")
+  labs(x="Categoria", y="Ricavo unitario", colour = "Sezione")
   theme_light()
 ```
-
->>>>>>> 4af6c636e27e3c96e994aecc623505559b53c039
+Dal grafico, si evince come la sezione Entance sia tendenzialmente legata a ricavi unitari pi� bassi rispetto alle altre sezioni per ciascuna categoria. Inoltre si pu� notare come la tipologia di slot reel venga valorizzata se posizionata nella sezione Boundary del Casin�, in quanto restituisce ricavi unitari maggiori. Per quanto riguarda le slot di tipo Video, osserviamo i ricavi maggiori quando sono disposte nelle sezioni Interior e Restaurant Plaza. Le slot Vpoker forniscono un ricavo unitario relativamente basso ed equidistribuito per le diverse sezioni. Infine si pu� asserire che slot da cui si guadagna maggiormente sono quelle con denomination pari a 0.05, 0.25 e 1.
 
 Prime dimensione: il tempo
 ```{r}
@@ -196,9 +185,9 @@ ggplot(data=ricavi_casino, aes(x=ricavi_casino$Casino, y = ricavi_casino$ricavo_
   theme_classic()
 ```
 
-Dato che i ricavi unitari cambiano in funzione delle 4 dimensioni analizzate possiamo affermare che ha senso creare un modello per ciascun mese e che cerchi di massimizzare i ricavi unitari delle categorie presenti in ciascuna sezione.
+Dato che i ricavi unitari cambiano in funzione delle 4 dimensioni analizzate possiamo affermare che ha senso creare un modello per ciascun mese che cerchi di massimizzare i ricavi unitari delle categorie presenti in ciascuna sezione.
 
-##Constraints Number 3: Motivation
+##Vincolo numero 3: Motivazione
 
 ```{r}
 ggplot(data=df, aes(x=df$giocate_totali, y = df$numero_macchine)) +
@@ -210,8 +199,7 @@ ggplot(data=df, aes(x=df$giocate_totali, y = df$numero_macchine)) +
 cat("The Correlation between 'Giocate Totali' and 'Numero Macchine' is:",cor(df$giocate_totali, df$numero_macchine))
 ```
 
-But this is true in each month?
-
+Ma � vero per ogni mese?
 ```{r}
 correlazione = list()
 m = sort(unique(ymd(df$Month)))
@@ -219,5 +207,7 @@ for(i in 1:12) {
   month = df %>% filter(Month == m[i])
   correlazione[as.character(m[i])] = cor(month$giocate_totali, month$numero_macchine)
 }
+correlazione
 ```
 
+Si!
