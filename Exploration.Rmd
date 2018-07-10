@@ -36,7 +36,7 @@ knitr::kable(status)
 
 ##Categorization
 
-Creazione del dataset che verrà utilizzato per i 12 modelli. L'aggregazione avviene per categoria (MachineType+Denomination) per ogni mese in ogni sezione dei 2 Casinò.
+Creazione del dataset che verrÃ  utilizzato per i 12 modelli. L'aggregazione avviene per categoria (MachineType+Denomination) per ogni mese in ogni sezione dei 2 CasinÃ².
 
 
 ```{r}
@@ -53,7 +53,7 @@ df <- slot %>%
 knitr::kable(head(df))
 ```
 
-A seguito del processo di aggregazione, qual è il numero massimo di categorie per LDE?
+A seguito del processo di aggregazione, qual Ã¨ il numero massimo di categorie per LDE?
 ```{r}
 cat("Max number of categories:", nrow(df %>%
   group_by(tipo) %>%
@@ -68,7 +68,7 @@ knitr::kable(df %>%
   select(tipo))
 ```
 
-Qual è il numero massimo di categorie in ciascun Casinò?
+Qual Ã¨ il numero massimo di categorie in ciascun CasinÃ²?
 ```{r}
 Casino = df %>% group_by(tipo, Casino) %>%
   summarise(n = n()) %>%
@@ -77,7 +77,7 @@ cat("Max number of categories for Aries:", nrow(Casino %>% filter(Casino == "Ari
 cat("Max number of categories for Libra:", nrow(Casino %>% filter(Casino == "Libra")))
 ```
 
-Quante categorie (in media) ci sono in ciascuna Sezione dei 2 Casinò?
+Quante categorie (in media) ci sono in ciascuna Sezione dei 2 CasinÃ²?
 ```{r}
 knitr::kable(df %>% group_by(Casino, Section, Month) %>%
   summarise(n = n()) %>%
@@ -86,7 +86,7 @@ knitr::kable(df %>% group_by(Casino, Section, Month) %>%
   summarise(Numero_medio_categorie = mean(n), Varianza_numero_categorie = sqrt(var(n))))
 ```
 
-Quante categorie (in media) ci sono in ciascun mese per i 2 Casinò?
+Quante categorie (in media) ci sono in ciascun mese per i 2 CasinÃ²?
 ```{r}
 knitr::kable(df %>% group_by(Casino, Section, Month) %>%
   summarise(n = n()) %>%
@@ -105,9 +105,9 @@ ggplot(data = tre, aes(x = tre$tipo, y = tre$ricavo_unitario, colour = tre$Secti
   labs(x="Categoria", y="Ricavo unitario", colour = "Sezione")
   theme_light()
 ```
-Dal grafico, si evince come la sezione Entance sia tendenzialmente legata a ricavi unitari più bassi rispetto alle altre sezioni per ciascuna categoria. Inoltre si può notare come la tipologia di slot reel venga valorizzata se posizionata nella sezione Boundary del Casinò, in quanto restituisce ricavi unitari maggiori. Per quanto riguarda le slot di tipo Video, osserviamo i ricavi maggiori quando sono disposte nelle sezioni Interior e Restaurant Plaza. Le slot Vpoker forniscono un ricavo unitario relativamente basso ed equidistribuito per le diverse sezioni. Infine si può asserire che slot da cui si guadagna maggiormente sono quelle con denomination pari a 0.05, 0.25 e 1.
+Dal grafico, si evince come la sezione Entance sia tendenzialmente legata a ricavi unitari piÃ¹ bassi rispetto alle altre sezioni per ciascuna categoria. Inoltre si puÃ² notare come la tipologia di slot reel venga valorizzata se posizionata nella sezione Boundary del CasinÃ², in quanto restituisce ricavi unitari maggiori. Per quanto riguarda le slot di tipo Video, osserviamo i ricavi maggiori quando sono disposte nelle sezioni Interior e Restaurant Plaza. Le slot Vpoker forniscono un ricavo unitario relativamente basso ed equidistribuito per le diverse sezioni. Infine si puÃ² asserire che slot da cui si guadagna maggiormente sono quelle con denomination pari a 0.05, 0.25 e 1.
 
-Prime dimensione: il tempo
+Prima dimensione: il tempo
 ```{r}
 ricavi_mese = df %>% 
   group_by(Month) %>%
@@ -128,7 +128,7 @@ ggplot(data=ricavi_mese, aes(x=ricavi_mese$numero_macchine_medie,
                              y=ricavi_mese$ricavo_medio_totale,
                              colour = Month)) +
   geom_point(alpha=.4, size=4) +
-  ggtitle("PiÃ¹ macchine hai piÃ¹ guadagni? In linea di massima SI!") +
+  ggtitle("PiÃƒÂ¹ macchine hai piÃƒÂ¹ guadagni? In linea di massima SI!") +
   labs(x="Numero medio macchine", y="Ricavi medi totali") + 
   theme_minimal()
 
@@ -171,7 +171,7 @@ ggplot(data=ricavi_sezione, aes(x=ricavi_sezione$Section, y = sort(ricavi_sezion
 
 ```
 
-Quarta dimensione: i Casinò
+Quarta dimensione: i CasinÃ²
 ```{r}
 ricavi_casino = df %>% 
   group_by(Casino) %>%
@@ -192,14 +192,14 @@ Dato che i ricavi unitari cambiano in funzione delle 4 dimensioni analizzate pos
 ```{r}
 ggplot(data=df, aes(x=df$giocate_totali, y = df$numero_macchine)) +
   geom_point(alpha=.5, size=3, color="#880011") +
-  ggtitle("Più macchine ci sono più si gioca? Si") +
+  ggtitle("PiÃ¹ macchine ci sono piÃ¹ si gioca? Si") +
   labs(x="Giocate Totali", y="Numero di Macchine") +
   theme_classic()
 
 cat("The Correlation between 'Giocate Totali' and 'Numero Macchine' is:",cor(df$giocate_totali, df$numero_macchine))
 ```
 
-Ma è vero per ogni mese?
+Ma Ã¨ vero per ogni mese?
 ```{r}
 correlazione = list()
 m = sort(unique(ymd(df$Month)))
