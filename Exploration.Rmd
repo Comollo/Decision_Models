@@ -67,7 +67,7 @@ knitr::kable(df %>%
   select(tipo))
 ```
 
-Qual è il numero massimo di categorie in ciascun CasinÃ²?
+Qual è il numero massimo di categorie in ciascun Casinò?
 ```{r}
 Casino = df %>% group_by(tipo, Casino) %>%
   summarise(n = n()) %>%
@@ -104,9 +104,9 @@ ggplot(data = tre, aes(x = tre$tipo, y = tre$ricavo_unitario, colour = tre$Secti
   labs(x="Categoria", y="Ricavo unitario", colour = "Sezione")
   theme_light()
 ```
-Dal grafico, si evince come la sezione Entance sia tendenzialmente legata a ricavi unitari più bassi rispetto alle altre sezioni per ciascuna categoria. Inoltre si può notare come la tipologia di slot reel venga valorizzata se posizionata nella sezione Boundary del Casinò, in quanto restituisce ricavi unitari maggiori. Per quanto riguarda le slot di tipo Video, osserviamo i ricavi maggiori quando sono disposte nelle sezioni Interior e Restaurant Plaza. Le slot Vpoker forniscono un ricavo unitario relativamente basso ed equidistribuito per le diverse sezioni. Infine si puÃ² asserire che slot da cui si guadagna maggiormente sono quelle con denomination pari a 0.05, 0.25 e 1.
+Dal grafico, si evince come la sezione Entrance sia tendenzialmente legata a ricavi unitari più bassi rispetto alle altre sezioni per ciascuna categoria. Inoltre si può notare come la tipologia di slot reel venga valorizzata se posizionata nella sezione Boundary del Casinò, in quanto restituisce ricavi unitari maggiori. Per quanto riguarda le slot di tipo Video, osserviamo i ricavi maggiori quando sono disposte nelle sezioni Interior e Restaurant Plaza. Le slot Vpoker forniscono un ricavo unitario relativamente basso ed equidistribuito per le diverse sezioni. Infine si può asserire che slot da cui si guadagna maggiormente sono quelle con denomination pari a 0.05, 0.25 e 1.
 
-Prime dimensione: il tempo
+Prima dimensione: il tempo
 ```{r}
 ricavi_mese = df %>% 
   group_by(Month) %>%
@@ -192,7 +192,7 @@ Iniziamo considerando il Dataset intero
 ```{r}
 ggplot(data=df, aes(x=df$giocate_totali, y = df$numero_macchine)) +
   geom_point(alpha=.5, size=3, color="#880011") +
-  ggtitle("PiÃ¹ macchine ci sono piÃ¹ si gioca? Si") +
+  ggtitle("Più macchine ci sono più si gioca? Si") +
   labs(x="Giocate Totali", y="Numero di Macchine") +
   theme_classic()
 
@@ -210,8 +210,8 @@ for(i in 1:12) {
 correlazione
 ```
 Si!  
-Data l'elevata correlazione tra le due variabili, vogliamo inserire un vincolo che tenga conto di questo aspetto. L'assunto è che le categorie con maggior numero di macchine siano anche quelle che ottengono più giocate in un dato mese, ergo sono quelle "preferite" dalla clientela. Se alcune categorie hanno più macchine significa che il manager del Casinò ha constato che in quel periodo i clienti sono particolarmente interessati a quelle categorie.  
-Tuttavia per settare l'adeguato numero di macchine in funzione delle giocate occorre anche tenere in considerazione la diversa struttura dei due CasinÃ² (Aries e Libra)
+Data l'elevata correlazione tra le due variabili, vogliamo inserire un vincolo che tenga conto di questo aspetto. L'assunto è che le categorie con maggior numero di macchine siano anche quelle che ottengono più giocate in un dato mese, ergo sono quelle "preferite" dalla clientela. Se alcune categorie hanno più macchine significa che il manager del Casinò ha constatato che in quel periodo i clienti sono particolarmente interessati a quelle categorie.  
+Tuttavia per settare l'adeguato numero di macchine in funzione delle giocate occorre anche tenere in considerazione la diversa struttura dei due Casinò (Aries e Libra)
 
 Iniziamo considerando il dataset intero
 ```{r}
@@ -255,7 +255,7 @@ Non sempre!
 
 Siccome l'obiettivo finale è quello di determinare il numero di macchine in funzione delle giocate totali dobbiamo:  
 1) discretizzare la variabile giocate totali;  
-2) calcolare alcuni misure statistische relative ai gruppi formati in fase di discretizzazione e scegliere la misura per settare la soglia (lower & upper);  
+2) calcolare alcune misure statistische relative ai gruppi formati in fase di discretizzazione e scegliere la misura per settare la soglia (lower & upper);  
 3) individuare il lower e l'upper bound sulla base dell'indice scelto.  
 
-Per discretizzare la variabile "giocate totali", abbiamo considerato i quartili della distribuzione di frequenza. Fatta questa premessa, sarebbe stato un errore utilizzare la distribuzione di tale variabile così com'è: come si evince dall'output precedente, in più di un mese, i valori delle giocate totali nei due CasinÃ² sono significativamente diversi. Per non incorrere nell'errore di creare intervalli errati si è deciso che per ciascun mese la variabile "giocate totali" verrà dicretizzata con intervalli differenti a seconda del CasinÃ² di appartenenza.
+Per discretizzare la variabile "giocate totali", abbiamo considerato i quartili della distribuzione di frequenza. Fatta questa premessa, sarebbe stato un errore utilizzare la distribuzione di tale variabile così com'è: come si evince dall'output precedente, in più di un mese, i valori delle giocate totali nei due Casinò sono significativamente diversi. Per non incorrere nell'errore di creare intervalli errati si è deciso che per ciascun mese la variabile "giocate totali" verrà dicretizzata con intervalli differenti a seconda del Casinò di appartenenza.
