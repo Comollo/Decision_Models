@@ -77,7 +77,11 @@ cat("Max number of categories for Aries:", nrow(Casino %>% filter(Casino == "Ari
 cat("Max number of categories for Libra:", nrow(Casino %>% filter(Casino == "Libra")))
 ```
 
+<<<<<<< HEAD
 Quante categorie (in media) ci sono in ciascuna Sezione dei 2 Casin�?
+=======
+How many in each Section of the two Casinò?
+>>>>>>> 4af6c636e27e3c96e994aecc623505559b53c039
 ```{r}
 knitr::kable(df %>% group_by(Casino, Section, Month) %>%
   summarise(n = n()) %>%
@@ -95,8 +99,24 @@ knitr::kable(df %>% group_by(Casino, Section, Month) %>%
   summarise(Numero_medio_categorie = mean(n), Varianza_numero_categorie = sqrt(var(n))))
 ```
 
+<<<<<<< HEAD
 ##Data Visualization (Exploration)
 Al fine di sottolineare alcuni aspetti denotati in fase di esplorazione verranno creati dei dataset appositi.
+=======
+#Data Visualization (Exploration)
+We created ad hoc dataset to plot important details.
+
+Dal grafico sottostante, si evince come la sezione “Entrance” sia tendenzialmente legata a ricavi unitari più bassi rispetto alle altre sezioni, per ciascuna categoria. Inoltre si può notare come la tipologia di slot “reel” venga valorizzata se posizionata nella sezione “Boundary” del casinò, in quanto restituisce ricavi unitari maggiori. Per quanto riguarda le slot di tipo “video”, osserviamo i ricavi maggiori quando sono disposte nelle sezioni “Interior” e “RestaurantPlaza”. Le slot “vpoker” forniscono un ricavo unitario relativamente  basso ed equidistribuito per le diverse sezioni. Infine si può asserire che slot da cui si guadagna maggiormente sono quelle con denomination pari a 0.05 , 0.25 e 1.
+
+```{r}
+tre <- df %>% select(Section, tipo, ricavo_unitario)
+ggplot(data = tre, aes(x = tre$tipo, y = tre$ricavo_unitario, colour = tre$Section)) +
+  geom_point( size=4) +
+  labs(x="Categoria", y="Guadagno unitario", colour = "Sezione")
+  theme_light()
+```
+
+>>>>>>> 4af6c636e27e3c96e994aecc623505559b53c039
 
 Prime dimensione: il tempo
 ```{r}
@@ -119,7 +139,7 @@ ggplot(data=ricavi_mese, aes(x=ricavi_mese$numero_macchine_medie,
                              y=ricavi_mese$ricavo_medio_totale,
                              colour = Month)) +
   geom_point(alpha=.4, size=4) +
-  ggtitle("Pi� macchine hai pi� guadagni? In linea di massima SI!") +
+  ggtitle("Più macchine hai più guadagni? In linea di massima SI!") +
   labs(x="Numero medio macchine", y="Ricavi medi totali") + 
   theme_minimal()
 
