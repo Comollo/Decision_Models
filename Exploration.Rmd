@@ -1,8 +1,15 @@
 ---
-title: "Untitled"
-author: "Adreose E, Caldara G, COmotto F, Scardovelli M"
+title: "LDE dataset"
+author: "Adreose Eugenio,<br>Caldara Gabriele,<br>Comotto Federico,<br>Scardovelli Massimiliano"
 date: "09 luglio 2018"
-output: html_document
+output:
+  html_document:
+    code_download: yes
+    df_print: paged
+    highlight: textmate
+    theme: spacelab
+    toc: yes
+    toc_depth: 5
 ---
 
 ```{r, include=FALSE}
@@ -13,7 +20,7 @@ library(ggplot2)
 options(scipen = 999)
 ```
 
-#Lucky Duck Entertainment dataset
+##Dataset
 
 ```{r}
 slot <- readxl::read_excel("Lucky Duck Entertainment revenue 2013.xls", na = c(".", "NA", "NaN"))
@@ -23,13 +30,14 @@ str(slot)
 Status Dataframe
 ```{r}
 status = df_status(slot, print_results = F)
-summary(slot$Month) #12 month
+sort(unique(slot$Month)) #12 month
 knitr::kable(status)
 ```
 
-#Categorization
+##Categorization
 
-Create dataset to be used for further analysis, i.e. aggregate slots by categories (MachineType+Denomination) for each month and section in each casino.
+Creazione del dataset che verrà utilizzato per i 12 modelli. L'aggregazione avviene per categoria (MachineType+Denomination) per ogni mese in ogni sezione dei 2 Casinò.
+
 
 ```{r}
 df <- slot %>%
@@ -42,42 +50,55 @@ df <- slot %>%
             ricavo_per_giocata = ricavi_totali/giocate_totali) %>%
   arrange(Month, Section, MachineType, Denomination) %>%
   mutate(tipo = paste0(MachineType, "_", Denomination)) 
-head(df)
+knitr::kable(head(df))
 ```
 
-How many categories are there in LDE?
+A seguito del processo di aggregazione, qual è il numero massimo di categorie per LDE?
 ```{r}
-df %>%
+cat("Max number of categories:", nrow(df %>%
+  group_by(tipo) %>%
+  summarise(n = n())))
+```
+
+Quali sono?
+```{r}
+knitr::kable(df %>%
   group_by(tipo) %>%
   summarise(n = n()) %>%
-  View()
-#max 14
+  select(tipo))
 ```
 
-How many in each Section of the two Casinò?
+Qual è il numero massimo di categorie in ciascun Casinò?
 ```{r}
-df %>% group_by(Casino, Section, Month) %>%
+Casino = df %>% group_by(tipo, Casino) %>%
+  summarise(n = n()) %>%
+  arrange(Casino)
+cat("Max number of categories for Aries:", nrow(Casino %>% filter(Casino == "Aries")), fill = T)
+cat("Max number of categories for Libra:", nrow(Casino %>% filter(Casino == "Libra")))
+```
+
+Quante categorie (in media) ci sono in ciascuna Sezione dei 2 Casinò?
+```{r}
+knitr::kable(df %>% group_by(Casino, Section, Month) %>%
   summarise(n = n()) %>%
   arrange(Casino, Section) %>%
   group_by(Casino, Section) %>%
-  summarise(Numero_medio_categorie = mean(n), Varianza_numero_categorie = sqrt(var(n))) %>%
-  View()
+  summarise(Numero_medio_categorie = mean(n), Varianza_numero_categorie = sqrt(var(n))))
 ```
 
-How many in each month?
+Quante categorie (in media) ci sono in ciascun mese per i 2 Casinò?
 ```{r}
-df %>% group_by(Casino, Section, Month) %>%
+knitr::kable(df %>% group_by(Casino, Section, Month) %>%
   summarise(n = n()) %>%
   arrange(Casino, Section) %>%
-  group_by(Month) %>%
-  summarise(Numero_medio_categorie = mean(n), Varianza_numero_categorie = sqrt(var(n))) %>%
-  View()
+  group_by(Casino, Month) %>%
+  summarise(Numero_medio_categorie = mean(n), Varianza_numero_categorie = sqrt(var(n))))
 ```
 
-#Data Visualization (Exploration)
-We created ad hoc dataset to plot important details
+##Data Visualization (Exploration)
+Al fine di sottolineare alcuni aspetti denotati in fase di esplorazione verranno creati dei dataset appositi.
 
-First dimension: Time
+Prime dimensione: il tempo
 ```{r}
 ricavi_mese = df %>% 
   group_by(Month) %>%
@@ -111,7 +132,7 @@ ggplot(data=ricavi_mese, aes(x=ricavi_mese$numero_macchine_medie,
   theme_minimal()
 ```
  
-Second Dimension: Category
+Seconda dimensione: categorie
 ```{r}
 ricavi_categoria = df %>%
   group_by(Denomination, MachineType) %>%
@@ -126,8 +147,7 @@ ggplot(data=ricavi_categoria, aes(x=ricavi_categoria$type, y = sort(ricavi_categ
 
 ```
 
-Third dimension: Section
-
+Terza dimensione: le sezioni
 ```{r}
 ricavi_sezione = df %>% 
   group_by(Section) %>%
@@ -142,8 +162,7 @@ ggplot(data=ricavi_sezione, aes(x=ricavi_sezione$Section, y = sort(ricavi_sezion
 
 ```
 
-Fourth dimension: Casino
-
+Quarta dimensione: i Casinò
 ```{r}
 ricavi_casino = df %>% 
   group_by(Casino) %>%
@@ -156,3 +175,29 @@ ggplot(data=ricavi_casino, aes(x=ricavi_casino$Casino, y = ricavi_casino$ricavo_
   labs(x="Casino", y="Ricavo medio unitario") +
   theme_classic()
 ```
+
+Dato che i ricavi unitari cambiano in funzione delle 4 dimensioni analizzate possiamo affermare che ha senso creare un modello per ciascun mese e che cerchi di massimizzare i ricavi unitari delle categorie presenti in ciascuna sezione.
+
+##Constraints Number 3: Motivation
+
+```{r}
+ggplot(data=df, aes(x=df$giocate_totali, y = df$numero_macchine)) +
+  geom_point(alpha=.5, size=3, color="#880011") +
+  ggtitle("Più macchine ci sono più si gioca? Si") +
+  labs(x="Giocate Totali", y="Numero di Macchine") +
+  theme_classic()
+
+cat("The Correlation between 'Giocate Totali' and 'Numero Macchine' is:",cor(df$giocate_totali, df$numero_macchine))
+```
+
+But this is true in each month?
+
+```{r}
+correlazione = list()
+m = sort(unique(ymd(df$Month)))
+for(i in 1:12) {
+  month = df %>% filter(Month == m[i])
+  correlazione[as.character(m[i])] = cor(month$giocate_totali, month$numero_macchine)
+}
+```
+
