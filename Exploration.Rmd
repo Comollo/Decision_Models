@@ -35,7 +35,7 @@ knitr::kable(status)
 ```
 
 ##Categorization
-Creazione del dataset che verr√† utilizzato per i 12 modelli. L'aggregazione avviene per categoria (MachineType+Denomination) per ogni mese in ogni sezione dei 2 Casin√≤.
+Creazione del dataset che verr‡ utilizzato per i 12 modelli. L'aggregazione avviene per categoria (MachineType+Denomination) per ogni mese in ogni sezione dei 2 CasinÚ.
 
 
 ```{r}
@@ -52,7 +52,7 @@ df <- slot %>%
 head(df)
 ```
 
-A seguito del processo di aggregazione, qual √® il numero massimo di categorie per LDE?
+A seguito del processo di aggregazione, qual Ë il numero massimo di categorie per LDE?
 ```{r}
 cat("Max number of categories:", nrow(df %>%
   group_by(tipo) %>%
@@ -67,7 +67,7 @@ knitr::kable(df %>%
   select(tipo))
 ```
 
-Qual √® il numero massimo di categorie in ciascun Casin√≤?
+Qual Ë il numero massimo di categorie in ciascun Casin√≤?
 ```{r}
 Casino = df %>% group_by(tipo, Casino) %>%
   summarise(n = n()) %>%
@@ -76,7 +76,7 @@ cat("Max number of categories for Aries:", nrow(Casino %>% filter(Casino == "Ari
 cat("Max number of categories for Libra:", nrow(Casino %>% filter(Casino == "Libra")))
 ```
 
-Quante categorie (in media) ci sono in ciascuna Sezione dei 2 Casin√≤?
+Quante categorie (in media) ci sono in ciascuna Sezione dei 2 CasinÚ?
 ```{r}
 knitr::kable(df %>% group_by(Casino, Section, Month) %>%
   summarise(n = n()) %>%
@@ -85,7 +85,7 @@ knitr::kable(df %>% group_by(Casino, Section, Month) %>%
   summarise(Numero_medio_categorie = mean(n), Varianza_numero_categorie = sqrt(var(n))))
 ```
 
-Quante categorie (in media) ci sono in ciascun mese per i 2 Casin√≤?
+Quante categorie (in media) ci sono in ciascun mese per i 2 CasinÚ?
 ```{r}
 knitr::kable(df %>% group_by(Casino, Section, Month) %>%
   summarise(n = n()) %>%
@@ -104,7 +104,7 @@ ggplot(data = tre, aes(x = tre$tipo, y = tre$ricavo_unitario, colour = tre$Secti
   labs(x="Categoria", y="Ricavo unitario", colour = "Sezione")
   theme_light()
 ```
-Dal grafico, si evince come la sezione Entance sia tendenzialmente legata a ricavi unitari pi√π bassi rispetto alle altre sezioni per ciascuna categoria. Inoltre si pu√≤ notare come la tipologia di slot reel venga valorizzata se posizionata nella sezione Boundary del Casin√≤, in quanto restituisce ricavi unitari maggiori. Per quanto riguarda le slot di tipo Video, osserviamo i ricavi maggiori quando sono disposte nelle sezioni Interior e Restaurant Plaza. Le slot Vpoker forniscono un ricavo unitario relativamente basso ed equidistribuito per le diverse sezioni. Infine si pu√≤ asserire che slot da cui si guadagna maggiormente sono quelle con denomination pari a 0.05, 0.25 e 1.
+Dal grafico, si evince come la sezione Entance sia tendenzialmente legata a ricavi unitari pi˘ bassi rispetto alle altre sezioni per ciascuna categoria. Inoltre si puÚ notare come la tipologia di slot reel venga valorizzata se posizionata nella sezione Boundary del CasinÚ, in quanto restituisce ricavi unitari maggiori. Per quanto riguarda le slot di tipo Video, osserviamo i ricavi maggiori quando sono disposte nelle sezioni Interior e Restaurant Plaza. Le slot Vpoker forniscono un ricavo unitario relativamente basso ed equidistribuito per le diverse sezioni. Infine si pu√≤ asserire che slot da cui si guadagna maggiormente sono quelle con denomination pari a 0.05, 0.25 e 1.
 
 Prime dimensione: il tempo
 ```{r}
@@ -127,7 +127,7 @@ ggplot(data=ricavi_mese, aes(x=ricavi_mese$numero_macchine_medie,
                              y=ricavi_mese$ricavo_medio_totale,
                              colour = Month)) +
   geom_point(alpha=.4, size=4) +
-  ggtitle("Pi√π macchine hai pi√π guadagni? In linea di massima SI!") +
+  ggtitle("Pi˘ macchine hai pi˘ guadagni? In linea di massima SI!") +
   labs(x="Numero medio macchine", y="Ricavi medi totali") + 
   theme_minimal()
 
@@ -170,7 +170,7 @@ ggplot(data=ricavi_sezione, aes(x=ricavi_sezione$Section, y = sort(ricavi_sezion
 
 ```
 
-Quarta dimensione: i Casin√≤
+Quarta dimensione: i CasinÚ
 ```{r}
 ricavi_casino = df %>% 
   group_by(Casino) %>%
@@ -199,7 +199,7 @@ ggplot(data=df, aes(x=df$giocate_totali, y = df$numero_macchine)) +
 cat("The Correlation between 'Giocate Totali' and 'Numero Macchine' is:",cor(df$giocate_totali, df$numero_macchine))
 ```
 
-Ma √® vero per ogni mese?
+Ma Ë vero per ogni mese?
 ```{r}
 correlazione = list()
 m = sort(unique(ymd(df$Month)))
@@ -210,7 +210,7 @@ for(i in 1:12) {
 correlazione
 ```
 Si!  
-Data l'elevata correlazione tra le due variabili, vogliamo inserire un vincolo che tenga conto di questo aspetto. L'assunto √® che le categorie con maggior numero di macchine siano anche quelle che ottengono pi√π giocate in un dato mese, ergo sono quelle "preferite" dalla clientela. Se alcune categorie hanno pi√π macchine significa che il manager del Casin√≤ ha constato che in quel periodo i clienti sono particolarmente interessati a quelle categorie.  
+Data l'elevata correlazione tra le due variabili, vogliamo inserire un vincolo che tenga conto di questo aspetto. L'assunto Ë che le categorie con maggior numero di macchine siano anche quelle che ottengono pi˘ giocate in un dato mese, ergo sono quelle "preferite" dalla clientela. Se alcune categorie hanno pi˘ macchine significa che il manager del CasinÚ ha constato che in quel periodo i clienti sono particolarmente interessati a quelle categorie.  
 Tuttavia per settare l'adeguato numero di macchine in funzione delle giocate occorre anche tenere in considerazione la diversa struttura dei due Casin√≤ (Aries e Libra)
 
 Iniziamo considerando il dataset intero
@@ -239,9 +239,9 @@ p + stat_summary(fun.data = data_summary,
 
 t.test(df$giocate_totali ~ df$Casino) #distribuzioni significativamente diverse: non posso usare la congiunta
 ```
-In generale √® vero che la distribuzione delle giocate totali cambia a seconda del Casin√≤ di riferimento.
+In generale Ë vero che la distribuzione delle giocate totali cambia a seconda del CasinÚ di riferimento.
 
-Ma √® vero per ogni mese?
+Ma Ë vero per ogni mese?
 ```{r}
 test = list()
 for(i in 1:12) {
@@ -253,9 +253,9 @@ test
 ```
 Non sempre!  
 
-Siccome l'obiettivo finale √® quello di determinare il numero di macchine in funzione delle giocate totali dobbiamo:  
+Siccome l'obiettivo finale Ë quello di determinare il numero di macchine in funzione delle giocate totali dobbiamo:  
 1) discretizzare la variabile giocate totali;  
 2) calcolare alcuni misure statistische relative ai gruppi formati in fase di discretizzazione e scegliere la misura per settare la soglia (lower & upper);  
 3) individuare il lower e l'upper bound sulla base dell'indice scelto.  
 
-Per discretizzare la variabile "giocate totali", abbiamo considerato i quartili della distribuzione di frequenza.  Fatta questa premessa, sarebbe stato un errore utilizzare la distribuzione di tale variabile cos√¨ com'√®: come si evince dall'output precedente, in pi√π di un mese, i valori delle giocate totali nei due Casin√≤ sono significativamente diversi. Per non incorrere nell'errore di creare intervalli errati si √® deciso che per ciascun mese la variabile "giocate totali" verr√† dicretizzata con intervalli differenti a seconda del Casin√≤ di appartenenza.
+Per discretizzare la variabile "giocate totali", abbiamo considerato i quartili della distribuzione di frequenza. Fatta questa premessa, sarebbe stato un errore utilizzare la distribuzione di tale variabile cosÏ com'Ë: come si evince dall'output precedente, in pi˘ di un mese, i valori delle giocate totali nei due Casin√≤ sono significativamente diversi. Per non incorrere nell'errore di creare intervalli errati si Ë deciso che per ciascun mese la variabile "giocate totali" verr‡ dicretizzata con intervalli differenti a seconda del Casin√≤ di appartenenza.
