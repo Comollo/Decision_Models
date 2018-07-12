@@ -98,7 +98,7 @@ knitr::kable(df %>% group_by(Casino, Section, Month) %>%
 Al fine di sottolineare alcuni aspetti denotati in fase di esplorazione verranno creati dei dataset appositi.
 GRAFICO X
 ```{r}
-tre <- data %>% select(Section, tipo, ricavo_unitario)
+tre <- df %>% select(Section, tipo, ricavo_unitario)
 ggplot(data = tre, aes(x = tipo, y = ricavo_unitario, colour = Section)) +
   #geom_point(alpha = .6) +
   geom_jitter(alpha = .8) + 
@@ -175,7 +175,7 @@ ggplot(data=ricavi_sezione, aes(x=ricavi_sezione$Section, y = sort(ricavi_sezion
 
 ```
 
-Quarta dimensione: i Casin?
+Quarta dimensione: i Casinò?
 ```{r}
 ricavi_casino = df %>% 
   group_by(Casino) %>%
@@ -215,8 +215,8 @@ for(i in 1:12) {
 correlazione
 ```
 Si!  
-Data l'elevata correlazione tra le due variabili, vogliamo inserire un vincolo che tenga conto di questo aspetto. L'assunto ? che le categorie con maggior numero di macchine siano anche quelle che ottengono pi? giocate in un dato mese, ergo sono quelle "preferite" dalla clientela. Se alcune categorie hanno pi? macchine significa che il manager del Casin? ha constatato che in quel periodo i clienti sono particolarmente interessati a quelle categorie.  
-Tuttavia per settare l'adeguato numero di macchine in funzione delle giocate occorre anche tenere in considerazione la diversa struttura dei due Casin? (Aries e Libra)
+Data l'elevata correlazione tra le due variabili, vogliamo inserire un vincolo che tenga conto di questo aspetto. L'assunto è che le categorie con maggior numero di macchine siano anche quelle che ottengono più giocate in un dato mese, ergo sono quelle "preferite" dalla clientela. Se alcune categorie hanno più macchine significa che il manager del Casinò ha constatato che in quel periodo i clienti sono particolarmente interessati a quelle categorie.  
+Tuttavia per settare l'adeguato numero di macchine in funzione delle giocate occorre anche tenere in considerazione la diversa struttura dei due Casinò (Aries e Libra)
 
 Iniziamo considerando il dataset intero
 ```{r}
@@ -244,9 +244,9 @@ p + stat_summary(fun.data = data_summary,
 
 t.test(df$giocate_totali ~ df$Casino) #distribuzioni significativamente diverse: non posso usare la congiunta
 ```
-In generale ? vero che la distribuzione delle giocate totali cambia a seconda del Casin? di riferimento.
+In generale è vero che la distribuzione delle giocate totali cambia a seconda del Casinò di riferimento.
 
-Ma ? vero per ogni mese?
+Ma è vero per ogni mese?
 ```{r}
 test = list()
 for(i in 1:12) {
@@ -258,9 +258,9 @@ test
 ```
 Non sempre!  
 
-Siccome l'obiettivo finale ? quello di determinare il numero di macchine in funzione delle giocate totali dobbiamo:  
+Siccome l'obiettivo finale è quello di determinare il numero di macchine in funzione delle giocate totali dobbiamo:  
 1) discretizzare la variabile giocate totali;  
-2) calcolare alcune misure statistische relative ai gruppi formati in fase di discretizzazione e scegliere la misura per settare la soglia (lower & upper);  
+2) calcolare alcune misure statistische relative ai gruppi formati in fase di discretizzazione e scegliere la misura per settare la soglia del vincolo (lower & upper);  
 3) individuare il lower e l'upper bound sulla base dell'indice scelto.  
 
-Per discretizzare la variabile "giocate totali", abbiamo considerato i quartili della distribuzione di frequenza. Fatta questa premessa, sarebbe stato un errore utilizzare la distribuzione di tale variabile cos? com'?: come si evince dall'output precedente, in pi? di un mese, i valori delle giocate totali nei due Casin? sono significativamente diversi. Per non incorrere nell'errore di creare intervalli errati si ? deciso che per ciascun mese la variabile "giocate totali" verr? dicretizzata con intervalli differenti a seconda del Casin? di appartenenza.
+Per discretizzare la variabile "giocate totali", abbiamo considerato i quartili della distribuzione di frequenza. Fatta questa premessa, sarebbe stato un errore utilizzare la distribuzione congiunta (Aries + Libra): come si evince dall'output precedente, in più di un mese, i valori delle giocate totali nei due Casinò sono significativamente diversi. Per non incorrere nell'errore di creare intervalli errati si è deciso che per ciascun mese la variabile "giocate totali" verrà dicretizzata con intervalli differenti a seconda del Casinò di appartenenza.
